@@ -1,0 +1,18 @@
+services:
+  mended:
+    build: .
+    env_file: .env
+    environment:
+      DB_PATH: /data/mended.sqlite
+    volumes:
+      - mended_data:/data
+    restart: unless-stopped
+    networks:
+      - public_proxy
+
+volumes:
+  mended_data:
+
+networks:
+  public_proxy:
+    external: true

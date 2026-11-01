@@ -1,0 +1,13 @@
+walrus/
+.claude/
+.agents/
+.codex/
+.aws/
+.env
+.git
+**/node_modules
+**/*.sqlite*
+**/test/
+**/tests/
+**/*.test.*
+**/*.spec.*

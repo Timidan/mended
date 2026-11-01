@@ -1,0 +1,13 @@
+{
+  "name": "mended",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --no-warnings src/server.mjs",
+    "test": "node --no-warnings --test src/*.test.mjs scripts/*.test.mjs",
+    "seed": "node --no-warnings scripts/seed.mjs"
+  },
+  "dependencies": {
+    "@mysten-incubation/memwal": "^0.1.12"
+  }
+}

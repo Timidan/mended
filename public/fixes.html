@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fixes | Mended</title>
+  <meta name="description" content="Fixes for Walrus Memory and Sui, with verified transactions and developer reports.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Spectral:ital,wght@1,300;1,400&display=swap" rel="stylesheet">
+  <link rel="icon" href="/mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="tool">
+  <header class="nav">
+    <a class="brand" href="/"><img src="/mark.svg" alt="" width="28" height="28"><span>Mended</span></a>
+    <nav class="menu flat" aria-label="Main">
+      <a href="/search">Search</a>
+      <a href="/fixes" aria-current="page">Fixes</a>
+      <a href="/search#mcp">MCP server</a>
+    </nav>
+    <span></span>
+  </header>
+
+  <main class="log">
+    <h1>Fixes</h1>
+    <p id="stats" class="stats" aria-live="polite"></p>
+    <div id="fixes" aria-live="polite"><p class="empty">Loading fixes…</p></div>
+  </main>
+
+  <script src="/fixes.js" type="module"></script>
+</body>
+</html>

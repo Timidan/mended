@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mended | The fix that already worked</title>
+  <meta name="description" content="Paste a Walrus Memory or Sui error and see how other developers fixed it.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Spectral:ital,wght@1,300;1,400&display=swap" rel="stylesheet">
+  <link rel="icon" href="/mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="nav">
+    <a class="brand" href="/"><img src="/mark.svg" alt="" width="28" height="28"><span>Mended</span></a>
+    <nav class="menu" aria-label="Main">
+      <div class="drop">
+        <button aria-expanded="false" aria-controls="m-product">Product<svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg></button>
+        <div id="m-product" class="panel" hidden>
+          <a href="/search">Search</a>
+          <a href="/fixes">Fixes</a>
+          <a href="/search#mcp">MCP server</a>
+        </div>
+      </div>
+      <div class="drop">
+        <button aria-expanded="false" aria-controls="m-resources">Resources<svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg></button>
+        <div id="m-resources" class="panel" hidden>
+          <a href="#how">How it works</a>
+          <a href="#faq">FAQ</a>
+          <a href="https://docs.wal.app/walrus-memory">Walrus Memory docs</a>
+        </div>
+      </div>
+      <div class="drop">
+        <button aria-expanded="false" aria-controls="m-built">Built on<svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg></button>
+        <div id="m-built" class="panel" hidden>
+          <a href="https://www.walrus.xyz">Walrus</a>
+          <a href="https://tatum.io">Tatum</a>
+          <a href="https://sui.io">Sui</a>
+        </div>
+      </div>
+    </nav>
+    <a class="btn solid small" href="/search">Search fixes</a>
+  </header>
+
+  <main id="main">
+    <section class="hero">
+      <canvas id="bowl" aria-hidden="true"></canvas>
+      <div class="stage"></div>
+      <div class="hero-copy">
+        <h1>Paste <em>your Sui error</em>.<br>Get the fix that already worked.</h1>
+        <p>See how other developers fixed the same Walrus Memory or Sui error. Mended also checks your account on chain, and marks a fix verified when your next transaction succeeds.</p>
+        <div class="actions">
+          <a class="btn solid" href="/search?example=tx">See an example</a>
+          <a class="btn line" href="/search#mcp">Install the MCP server</a>
+        </div>
+      </div>
+      <ul class="strip">
+        <li><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5l5.5 2v4c0 3.4-2.3 5.7-5.5 7-3.2-1.3-5.5-3.6-5.5-7v-4l5.5-2z"/></svg>No sign-up</li>
+        <li><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/></svg>Stored on Walrus Memory</li>
+        <li><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.5"/></svg>Verified on Sui</li>
+      </ul>
+    </section>
+
+    <section class="promise">
+      <div class="pin">
+        <div class="marquee" aria-hidden="true">
+          <div class="track">
+            <span class="tag">Built on</span>
+            <img src="/logos/walrus.svg" alt="" height="26">
+            <img src="/logos/tatum.svg" alt="" height="22">
+            <span class="logo"><img src="/logos/sui.svg" alt="" height="24">Sui</span>
+            <span class="tag">Works with</span>
+            <span class="logo"><img src="/logos/claude-code.svg" alt="" height="24">Claude Code</span>
+            <span class="logo"><img src="/logos/codex.svg" alt="" height="24">Codex</span>
+            <span class="logo"><img src="/logos/cursor.svg" alt="" height="24">Cursor</span>
+            <span class="tag">Built on</span>
+            <img src="/logos/walrus.svg" alt="" height="26">
+            <img src="/logos/tatum.svg" alt="" height="22">
+            <span class="logo"><img src="/logos/sui.svg" alt="" height="24">Sui</span>
+            <span class="tag">Works with</span>
+            <span class="logo"><img src="/logos/claude-code.svg" alt="" height="24">Claude Code</span>
+            <span class="logo"><img src="/logos/codex.svg" alt="" height="24">Codex</span>
+            <span class="logo"><img src="/logos/cursor.svg" alt="" height="24">Cursor</span>
+          </div>
+        </div>
+        <h2 class="mend" aria-label="You hit the error, we remember the fix">
+          <span class="sizer" aria-hidden="true">You hit the error<br>we remember the fix</span>
+          <span class="shard one" aria-hidden="true">You hit the error<br>we remember the fix</span>
+          <span class="shard two" aria-hidden="true">You hit the error<br>we remember the fix</span>
+          <span class="shard three" aria-hidden="true">You hit the error<br>we remember the fix</span>
+          <svg class="seam" aria-hidden="true"><path/><path/><path/><path/></svg>
+        </h2>
+      </div>
+    </section>
+
+    <section class="walls">
+      <div class="head">
+        <h2>Stop losing hours to the same errors</h2>
+        <p>In our sample, only 1 of 1,626 Walrus Memory calls failed on chain. Most errors happen before a transaction is sent, so Mended checks your account, not just the transaction.</p>
+      </div>
+      <div class="error-log">
+        <ol class="errors">
+          <li><button aria-expanded="true" aria-controls="e-key"><code>401 AUTH_REJECTED</code><span class="cure">Register the delegate key on your account</span></button></li>
+          <li><button aria-expanded="false" aria-controls="e-rate"><code>429 Too Many Requests</code><span class="cure">Send smaller batches</span></button></li>
+          <li><button aria-expanded="false" aria-controls="e-abort"><code>MoveAbort, code 1</code><span class="cure">The key wasn't on the account</span></button></li>
+          <li><button aria-expanded="false" aria-controls="e-net"><code>Package object does not exist</code><span class="cure">Use the Mainnet package ID</span></button></li>
+        </ol>
+        <div class="details">
+          <article class="detail" id="e-key">
+            <h3>Delegate key rejected</h3>
+            <p>A <code>401 AUTH_REJECTED</code> doesn't say why. Mended checks whether the key is registered, how many of your 20 keys are used, and whether the account is active.</p>
+            <div class="art wash-a">
+              <dl class="sheet">
+                <div><dt>Account</dt><dd>Active</dd></div>
+                <div><dt>Delegate keys</dt><dd>4 of 20</dd></div>
+                <div><dt>This key</dt><dd class="bad">Not registered</dd></div>
+              </dl>
+            </div>
+          </article>
+          <article class="detail" id="e-rate" hidden>
+            <h3>429 on a bulk write</h3>
+            <p>Walrus Memory allows 60 points a minute and 500 an hour per account. See what other developers changed to stay under the limit.</p>
+            <div class="art wash-b">
+              <ul class="bars">
+                <li><span>analyze</span><i style="--w:100%"></i><b>10</b></li>
+                <li><span>remember</span><i style="--w:50%"></i><b>5</b></li>
+                <li><span>ask</span><i style="--w:20%"></i><b>2</b></li>
+                <li><span>recall</span><i style="--w:10%"></i><b>1</b></li>
+              </ul>
+            </div>
+          </article>
+          <article class="detail" id="e-abort" hidden>
+            <h3>Move abort with no reason</h3>
+            <p>The chain returns a function and a code. For Walrus Memory contracts, Mended tells you what the code means.</p>
+            <div class="art wash-c">
+              <div class="decode">
+                <code>account::remove_delegate_key</code>
+                <code>abort code 1</code>
+                <strong>EDelegateKeyNotFound</strong>
+                <span>Key not found when trying to remove</span>
+              </div>
+            </div>
+          </article>
+          <article class="detail" id="e-net" hidden>
+            <h3>Testnet ID on Mainnet</h3>
+            <p>A package from the wrong network reads as empty, and the error rarely mentions networks. Mended checks where your IDs exist.</p>
+            <div class="art wash-a">
+              <dl class="sheet">
+                <div><dt><code>0xe7c1…d7f5</code></dt><dd>On Mainnet</dd></div>
+                <div><dt><code>0x0a62…265c</code></dt><dd class="bad">Not on Mainnet</dd></div>
+              </dl>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="steps" id="how">
+      <div class="head">
+        <h2>How it works</h2>
+        <p>Paste an error, and Mended does three things.</p>
+      </div>
+
+      <div class="row">
+        <div class="say">
+          <h3>Checks your account</h3>
+          <p>Mended reads your Walrus Memory account on Sui through Tatum, so the answer fits your setup.</p>
+        </div>
+        <div class="art wash-b tall">
+          <div class="stack">
+            <div class="chip-dark"><strong>Account</strong><span>Via Tatum</span></div>
+            <dl class="sheet">
+              <div><dt>Account</dt><dd>Active</dd></div>
+              <div><dt>Delegate keys</dt><dd>4 of 20</dd></div>
+              <div><dt>Network</dt><dd>Mainnet</dd></div>
+            </dl>
+          </div>
+        </div>
+      </div>
+
+      <div class="row flip">
+        <div class="say">
+          <h3>Finds the fix</h3>
+          <p>It searches Walrus Memory for the same error, even when the wording differs. If there's no match, a person answers, and the next developer gets that answer.</p>
+        </div>
+        <div class="art wash-c tall">
+          <div class="stack">
+            <div class="chip-dark"><strong>401 AUTH_REJECTED</strong><span>Your error</span></div>
+            <div class="fix">
+              <span>Fix</span>
+              <strong>Register the delegate key on your account, then retry.</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="say">
+          <h3>Verifies it worked</h3>
+          <p>When your next call succeeds on Sui, the fix is marked verified and linked to that transaction. Fixes with no on-chain step stay marked as reported.</p>
+        </div>
+        <div class="art wash-a tall">
+          <ol class="proof">
+            <li><span class="bad">Failed</span><code>remove_delegate_key</code><time>18:40:59</time></li>
+            <li><span>Succeeded</span><code>remove_delegate_key</code><time>18:41:10</time></li>
+            <li class="gold"><strong>Verified</strong><a href="https://suiscan.xyz/mainnet/tx/DpSxt3goxewcaUGS9VJv2cxYoLMoqCbkSpqh6rQUCzua">View the transaction on Suiscan</a></li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <section class="faq" id="faq">
+      <h2>Frequently asked questions</h2>
+      <details>
+        <summary>What does Mended do?</summary>
+        <p>It finds the fix for a Walrus Memory or Sui error. Paste the error, and Mended checks your account on chain and shows what worked for other developers.</p>
+      </details>
+      <details>
+        <summary>Do I need an account or a wallet?</summary>
+        <p>No. Your Sui address and account ID are public, so Mended only reads them. It never asks for a private key and can't sign anything.</p>
+      </details>
+      <details>
+        <summary>Where do the fixes come from?</summary>
+        <p>Public Walrus Memory issues, which are labelled, and fixes written by a person when Mended has no answer. All of them are stored in Walrus Memory and listed on the <a href="/fixes">Fixes page</a>.</p>
+      </details>
+      <details>
+        <summary>What makes a fix verified?</summary>
+        <p>After you search, your next call to the function the fix names has to succeed on Sui. Fixes with no on-chain step, like using smaller batches, stay marked as reported.</p>
+      </details>
+      <details>
+        <summary>What happens to the text I paste?</summary>
+        <p>Mended removes keys and other secrets before storing anything, because the Walrus relayer can read the text. Please don't paste a private key.</p>
+      </details>
+      <details>
+        <summary>How do I use it in Claude Code or Codex?</summary>
+        <p>Add the MCP server with one command, shown on the <a href="/search#mcp">search page</a>. Your coding agent can then look up fixes when a build fails.</p>
+      </details>
+    </section>
+
+    <section class="close">
+      <div class="band">
+        <h2>Try it on your own error</h2>
+        <p>No sign-up, nothing to install.</p>
+        <a class="btn pale" href="/search">Search fixes</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="foot-top">
+      <div class="about">
+        <a class="brand" href="/"><img src="/mark.svg" alt="" width="28" height="28"><span>Mended</span></a>
+        <p>Fixes for Walrus Memory and Sui errors, verified on chain.</p>
+      </div>
+      <nav aria-label="Product"><h3>Product</h3><a href="/search">Search</a><a href="/fixes">Fixes</a><a href="/search#mcp">MCP server</a></nav>
+      <nav aria-label="Resources"><h3>Resources</h3><a href="#how">How it works</a><a href="#faq">FAQ</a><a href="https://docs.wal.app/walrus-memory">Walrus Memory docs</a></nav>
+      <nav aria-label="Built on"><h3>Built on</h3><a href="https://www.walrus.xyz">Walrus</a><a href="https://tatum.io">Tatum</a><a href="https://sui.io">Sui</a></nav>
+    </div>
+    <div class="giant" aria-hidden="true">Mended</div>
+  </footer>
+
+  <script src="/hero.js" type="module"></script>
+  <script src="/landing.js" type="module"></script>
+</body>
+</html>
