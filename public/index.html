@@ -42,6 +42,7 @@
         </div>
       </div>
     </nav>
+    <a class="nav-fixes" href="/fixes">Fixes</a>
     <a class="btn solid small" href="/search">Search fixes</a>
   </header>
 
@@ -51,7 +52,7 @@
       <div class="stage"></div>
       <div class="hero-copy">
         <h1>Paste <em>your Sui error</em>.<br>Get the fix that already worked.</h1>
-        <p>See how other developers fixed the same Walrus Memory or Sui error. Mended also checks your account on chain, and can mark a fix Verified when the next call or memory write succeeds for a supplied address.</p>
+        <p>See how other developers fixed the same Walrus Memory or Sui error. Add your address and Mended checks your account on chain, then can mark a fix Verified when your next call or memory write succeeds.</p>
         <div class="actions">
           <a class="btn solid" href="/search?example=tx">See an example</a>
           <a class="btn line" href="/search#mcp">Install the MCP server</a>
@@ -60,7 +61,7 @@
       <ul class="strip">
         <li><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5l5.5 2v4c0 3.4-2.3 5.7-5.5 7-3.2-1.3-5.5-3.6-5.5-7v-4l5.5-2z"/></svg>No sign-up</li>
         <li><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/></svg>Stored on Walrus Memory</li>
-        <li><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.5"/></svg>Verified on Sui</li>
+        <li><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.5"/></svg>Verification on Sui</li>
       </ul>
     </section>
 
@@ -103,26 +104,30 @@
         <ol class="errors">
           <li><button aria-expanded="true" aria-controls="e-key"><code>401 AUTH_REJECTED</code><span class="cure">If the key is missing, register it</span></button></li>
           <li><button aria-expanded="false" aria-controls="e-rate"><code>remember(): 429</code><span class="cure">Group writes and wait before retrying</span></button></li>
-          <li><button aria-expanded="false" aria-controls="e-abort"><code>remove_delegate_key, abort 1</code><span class="cure">The key wasn't on the account</span></button></li>
+          <li><button aria-expanded="false" aria-controls="e-abort"><code>remove_delegate_key, abort 1</code><span class="cure">The key wasn’t on the account</span></button></li>
           <li><button aria-expanded="false" aria-controls="e-net"><code>Testnet package object does not exist</code><span class="cure">Use the Mainnet package ID</span></button></li>
         </ol>
         <div class="details">
           <article class="detail" id="e-key">
             <h3>Delegate key rejected</h3>
-            <p>A <code>401 AUTH_REJECTED</code> doesn't say why. Mended checks whether the key is registered, how many of your 20 keys are used, and whether the account is active.</p>
+            <p>A <code>401 AUTH_REJECTED</code> doesn’t say why. Mended checks whether the key is registered, how many of your 20 keys are used, and whether the account is active.</p>
             <div class="art wash-a">
               <dl class="sheet">
                 <div><dt>Account</dt><dd>Active</dd></div>
-                <div><dt>Delegate keys</dt><dd>4 of 20</dd></div>
+                <div><dt>Delegate keys</dt><dd>1 of 20</dd></div>
                 <div><dt>This key</dt><dd class="bad">Not registered</dd></div>
               </dl>
             </div>
           </article>
           <article class="detail" id="e-rate" hidden>
             <h3>429 while calling remember</h3>
-            <p>Group facts with rememberBulk and wait for retryAfterSeconds before retrying. Extra delegate keys do not raise the account-wide limit.</p>
+            <p>Group facts with <code>rememberBulk</code> and wait for <code>retryAfterSeconds</code> before retrying. Extra delegate keys do not raise the account-wide limit.</p>
             <div class="art wash-b">
-              <p>Group facts → Wait for the stated delay → Retry</p>
+              <ol class="timeline">
+                <li><span>Group</span><span>Facts, with <code>rememberBulk</code></span></li>
+                <li><span>Wait</span><span>The stated delay</span></li>
+                <li class="gold"><strong>Retry</strong><span>When the delay ends</span></li>
+              </ol>
             </div>
           </article>
           <article class="detail" id="e-abort" hidden>
@@ -167,7 +172,7 @@
             <div class="chip-dark"><strong>Account</strong><span>Via Tatum</span></div>
             <dl class="sheet">
               <div><dt>Account</dt><dd>Active</dd></div>
-              <div><dt>Delegate keys</dt><dd>4 of 20</dd></div>
+              <div><dt>Delegate keys</dt><dd>1 of 20</dd></div>
               <div><dt>Network</dt><dd>Mainnet</dd></div>
             </dl>
           </div>
@@ -177,7 +182,7 @@
       <div class="row flip">
         <div class="say">
           <h3>Finds the fix</h3>
-          <p>It searches Walrus Memory for the same error, even when the wording differs. If there's no match, a person answers, and the next developer gets that answer.</p>
+          <p>It searches Walrus Memory for the same error, even when the wording differs. If there’s no match, a person answers, and the next developer gets that answer.</p>
         </div>
         <div class="art wash-c tall">
           <div class="stack">
@@ -196,9 +201,9 @@
           <p>For an eligible fix and a supplied address, Mended checks the next call or memory write on Sui. A successful result adds a Verified count. It cannot show that the fix caused it.</p>
         </div>
         <div class="art wash-a tall">
-          <ol class="timeline" aria-label="Verification illustration">
-            <li><span>Search</span><code>Error and address</code></li>
-            <li><span>Watch</span><code>The next call or memory write</code></li>
+          <ol class="timeline">
+            <li><span>Search</span><span>Error and address</span></li>
+            <li><span>Watch</span><span>The next call or memory write</span></li>
             <li class="gold"><strong>Verified</strong><span>If that result succeeds on Sui</span></li>
           </ol>
         </div>
@@ -213,19 +218,19 @@
       </details>
       <details>
         <summary>Do I need an account or a wallet?</summary>
-        <p>No. Your Sui address and account ID are public, so Mended only reads them. It never asks for a private key and can't sign anything.</p>
+        <p>No. Your Sui address and account ID are public, so Mended only reads them. It never asks for a private key and can’t sign anything.</p>
       </details>
       <details>
         <summary>Where do the fixes come from?</summary>
-        <p>Public Walrus Memory issues, which are labelled, and fixes written by a person when Mended has no answer. Saved answers are sent to Walrus Memory and listed on the <a href="/fixes">Fixes page</a>.</p>
+        <p>Public Walrus Memory issues, each linked from its fix, and fixes written by a person when Mended has no answer. Saved answers are sent to Walrus Memory and listed on the <a href="/fixes">Fixes page</a>.</p>
       </details>
       <details>
         <summary>What makes a fix verified?</summary>
-        <p>After you search with an address, the next call to the named function must succeed, or Sui must show the next memory write for a memory_write fix. Writes that were already working are not watched. Verified counts are distinct addresses, and anyone can name an address. Reports are separate.</p>
+        <p>After you search with an address, the next call to the named function must succeed, or Sui must show the next memory write for a <code>memory_write</code> fix. Writes that were already working are not watched. Verified counts are distinct addresses, and anyone can name an address. Reports are separate.</p>
       </details>
       <details>
         <summary>What happens to the text I paste?</summary>
-        <p>Mended removes keys and other secrets before storing anything, because the Walrus relayer can read the text. Please don't paste a private key.</p>
+        <p>Mended removes keys and other secrets before storing anything, because the Walrus relayer can read the text. Please don’t paste a private key.</p>
       </details>
       <details>
         <summary>How do I use it in Claude Code or Codex?</summary>
@@ -246,7 +251,7 @@
     <div class="foot-top">
       <div class="about">
         <a class="brand" href="/"><img src="/mark.svg" alt="" width="28" height="28"><span>Mended</span></a>
-        <p>Fixes for Walrus Memory and Sui errors, verified on chain.</p>
+        <p>Fixes for Walrus Memory and Sui errors.</p>
       </div>
       <nav aria-label="Product"><h3>Product</h3><a href="/search">Search</a><a href="/fixes">Fixes</a><a href="/search#mcp">MCP server</a></nav>
       <nav aria-label="Resources"><h3>Resources</h3><a href="#how">How it works</a><a href="#faq">FAQ</a><a href="https://docs.wal.app/walrus-memory">Walrus Memory docs</a></nav>

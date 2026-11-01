@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body class="tool">
+  <a class="skip" href="#main">Skip to content</a>
   <header class="nav">
     <a class="brand" href="/"><img src="/mark.svg" alt="" width="28" height="28"><span>Mended</span></a>
     <nav class="menu flat" aria-label="Main">
@@ -22,26 +23,26 @@
     <span></span>
   </header>
 
-  <main class="find">
+  <main class="find" id="main">
     <section class="ask">
       <form id="ask">
         <h1><label for="error">Paste your error</label></h1>
         <textarea id="error" name="error" rows="8" spellcheck="false" required placeholder="401 AUTH_REJECTED, a Move abort, or a transaction digest"></textarea>
-        <label for="address">Sui address, account ID or delegate public key</label>
+        <label for="address">Sui address, account ID or delegate public key (optional)</label>
         <input id="address" name="address" spellcheck="false" autocomplete="off" placeholder="0x…">
+        <p class="warn">Mended never needs a private key. Leave out anything private: the Walrus relayer can read what you paste.</p>
         <button class="btn solid" type="submit">Search fixes</button>
       </form>
-      <p class="warn">Use public IDs only. Mended never needs a private key.</p>
     </section>
 
-    <section class="result" aria-live="polite">
+    <section class="result">
       <div class="examples" id="examples">
         <h2>Examples</h2>
         <button data-example="tx"><strong>Failed transaction</strong><span>An abort on Mainnet, decoded</span></button>
-        <button data-example="key"><strong>Delegate key not registered</strong><span>An account checked against a key that isn't on it</span></button>
-        <button data-example="network"><strong>Testnet ID on Mainnet</strong><span>Walrus Memory's Testnet package</span></button>
+        <button data-example="key"><strong>Delegate key not registered</strong><span>An account checked against a key that isn’t on it</span></button>
+        <button data-example="network"><strong>Testnet ID on Mainnet</strong><span>Walrus Memory’s Testnet package</span></button>
       </div>
-      <div id="answer"></div>
+      <div id="answer" aria-live="polite"></div>
     </section>
 
     <section class="agent" id="mcp">
@@ -51,6 +52,7 @@
         <div><h3>Claude Code</h3><code id="cmd-claude"></code><button class="copy" data-copy="cmd-claude">Copy</button></div>
         <div><h3>Codex</h3><code id="cmd-codex"></code><button class="copy" data-copy="cmd-codex">Copy</button></div>
       </div>
+      <p id="copied" class="sr" role="status"></p>
       <p class="also">Any other client that supports MCP over HTTP can use <code id="mcp-url"></code>.</p>
     </section>
   </main>

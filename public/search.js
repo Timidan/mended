@@ -16,7 +16,8 @@ function el(tag, props = {}, ...children) {
   return node
 }
 
-const panel = (title, ...body) => el('section', { className: 'panel-a' }, title ? el('h3', { textContent: title }) : null, ...body)
+const panel = (title, ...body) => el('section', { className: 'panel-a' }, title ? el('h2', { textContent: title }) : null, ...body)
+const note = (text) => el('section', { className: 'panel-a note' }, el('p', { textContent: text }))
 const line = (label, value) => el('div', {}, el('dt', { textContent: label }), el('dd', {}, value))
 const link = (href, text, tone = '') => {
   try {
@@ -56,7 +57,7 @@ function transactionPanel(tx, retry) {
 function render(r) {
   const parts = []
   if (r.finding) {
-    parts.push(el('section', { className: 'panel-a fix-a' }, el('h3', { textContent: r.finding.name ? `Walrus docs: ${r.finding.name}` : 'Walrus docs' }), el('p', { textContent: r.finding.text })))
+    parts.push(el('section', { className: 'panel-a fix-a' }, el('h2', { textContent: r.finding.name ? `Walrus docs: ${r.finding.name}` : 'Walrus docs' }), el('p', { textContent: r.finding.text })))
   }
   if (r.fix) {
     const counts = el('p', { className: 'fix-counts', textContent: `${r.fix.verified} verified · ${r.fix.reported} reported` })
@@ -80,28 +81,31 @@ function render(r) {
       }
     })
     parts.push(el('section', { className: 'panel-a fix-a memory-fix' },
-      el('h3', { textContent: r.fix.status === 'retired' ? `Retired: ${r.fix.retiredReason?.replace(/^Fixed/, 'fixed')}` : r.fix.possible ? `Possible match: ${r.fix.title}` : r.fix.title }), el('p', { className: 'fix-body', textContent: r.fix.body }), counts,
+      el('h2', { textContent: r.fix.possible ? `Possible match: ${r.fix.title}` : r.fix.title }),
+      r.fix.status === 'retired' ? el('p', { className: 'fix-retired', textContent: r.fix.retiredReason ? `Retired: ${r.fix.retiredReason.replace(/^Fixed/, 'fixed')}` : 'Retired' }) : null,
+      el('p', { className: 'fix-body', textContent: r.fix.body }), counts,
       r.fix.sourceUrl ? link(r.fix.sourceUrl, 'Source') : null, button, feedback))
   }
   if (r.watching) parts.push(panel(null, el('p', { textContent: `Watching ${r.watching === 'memory_write' ? 'the next memory write' : `the next ${r.watching} call`} on Sui for up to 7 days.` })))
   if (r.handedOff) parts.push(panel('Waiting for an answer', el('p', { textContent: 'Sent for a person to answer. Search again later to check for a fix.' })))
-  if (r.memoryError) parts.push(panel('Memory unavailable', el('p', { textContent: r.memoryError })))
-  else if (r.memory?.connected === false) parts.push(panel('Memory not connected', el('p', { textContent: 'Remembered fixes are unavailable. You can still check your account.' })))
-  if (r.chainError) parts.push(el('section', { className: 'panel-a note' }, el('p', { textContent: `Unable to read Sui through Tatum (${r.chainError}). Try again in a moment.` })))
-  if (r.nothingToCheck) parts.push(el('section', { className: 'panel-a note' }, el('p', { textContent: 'Add your Sui address or account ID to check your account on chain.' })))
+  if (r.memoryError) parts.push(panel('Stored fixes unavailable', el('p', { textContent: r.memoryError.endsWith('.') ? r.memoryError : 'Walrus Memory is unavailable. Try again shortly.' })))
+  else if (r.memory?.connected === false) parts.push(panel('Stored fixes unavailable', el('p', { textContent: 'Walrus Memory is not connected. You can still check your account.' })))
+  if (r.chainError) parts.push(note(`Unable to read Sui through Tatum (${r.chainError}). Try again in a moment.`))
+  if (r.nothingToCheck) parts.push(note('Add your Sui address or account ID to check your account on chain.'))
   if (r.transaction) parts.push(transactionPanel(r.transaction, r.retry))
   if (r.checks?.length) {
     parts.push(panel(null, el('dl', { className: 'lines' }, ...r.checks.map((c) => line(c.label, c.href ? link(c.href, c.value, c.tone) : word(c.value, c.tone))))))
   }
-  if (!parts.length) parts.push(el('section', { className: 'panel-a note' }, el('p', { textContent: 'No fix found for this error yet.' })))
+  if (!parts.length) parts.push(note('No fix for this error yet. Try the exact error text, or add your Sui address.'))
   answer.replaceChildren(...parts)
-  examples.hidden = true
 }
 
 async function run() {
   const button = form.querySelector('button')
   button.disabled = true
   button.textContent = 'Searching…'
+  examples.hidden = true
+  answer.replaceChildren(note('Checking Sui and searching stored fixes…'))
   try {
     const res = await fetch('/api/ask', {
       method: 'POST',
@@ -110,9 +114,9 @@ async function run() {
     })
     const body = await res.json()
     if (res.ok) render(body)
-    else answer.replaceChildren(el('section', { className: 'panel-a note' }, el('p', { textContent: body.error })))
+    else answer.replaceChildren(note(body.error))
   } catch {
-    answer.replaceChildren(el('section', { className: 'panel-a note' }, el('p', { textContent: 'Unable to reach Mended. Check your connection and try again.' })))
+    answer.replaceChildren(note('Unable to reach Mended. Check your connection and try again.'))
   }
   button.disabled = false
   button.textContent = 'Search fixes'
@@ -136,11 +140,19 @@ const url = `${location.origin}/mcp`
 document.querySelector('#cmd-claude').textContent = `claude mcp add --transport http mended ${url}`
 document.querySelector('#cmd-codex').textContent = `codex mcp add mended --url ${url}`
 document.querySelector('#mcp-url').textContent = url
+const copied = document.querySelector('#copied')
 for (const b of document.querySelectorAll('[data-copy]')) {
   b.addEventListener('click', async () => {
-    await navigator.clipboard.writeText(document.getElementById(b.dataset.copy).textContent)
-    b.textContent = 'Copied'
-    setTimeout(() => (b.textContent = 'Copy'), 1500)
+    try {
+      await navigator.clipboard.writeText(document.getElementById(b.dataset.copy).textContent)
+      b.textContent = copied.textContent = 'Copied'
+    } catch {
+      b.textContent = copied.textContent = 'Unable to copy'
+    }
+    setTimeout(() => {
+      b.textContent = 'Copy'
+      copied.textContent = ''
+    }, 1500)
   })
 }
 

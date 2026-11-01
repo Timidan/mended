@@ -17,8 +17,16 @@ for (const b of drops) {
     b.nextElementSibling.hidden = open
   })
 }
-document.addEventListener('click', (e) => e.target.closest('.drop') || closeMenus())
-document.addEventListener('keydown', (e) => e.key === 'Escape' && closeMenus())
+document.addEventListener('click', (e) => e.target.closest('.drop > button') || closeMenus())
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return
+  const open = drops.find((b) => b.getAttribute('aria-expanded') === 'true')
+  closeMenus()
+  open?.focus()
+})
+for (const drop of document.querySelectorAll('.drop')) {
+  drop.addEventListener('focusout', (e) => e.relatedTarget && !drop.contains(e.relatedTarget) && closeMenus())
+}
 
 // Scrolling mends the statement: the broken pieces close up, then gold runs along the cracks.
 // CRACKS match the clip-paths on .shard in style.css; BRANCHES are gold only.
@@ -62,8 +70,9 @@ addEventListener('resize', drawSeams)
 document.fonts?.ready.then(drawSeams)
 drawSeams()
 
-// The error log mends itself once it scrolls into view, then stops
+// The error log mends itself once it scrolls into view, then stops. Any interaction ends the walk.
 const rows = [...document.querySelectorAll('.errors button')]
+const log = document.querySelector('.error-log')
 let timer = 0
 
 const mend = (i) => {
@@ -77,18 +86,22 @@ const walk = (i) => {
   mend(i)
   if (i + 1 < rows.length) timer = setTimeout(walk, 3800, i + 1)
 }
+const watcher = new IntersectionObserver(([entry]) => {
+  if (!entry.isIntersecting) return
+  watcher.disconnect()
+  walk(0)
+}, { threshold: 0.2 })
+const settle = () => {
+  watcher.disconnect()
+  clearTimeout(timer)
+  rows.forEach((row) => row.classList.add('mended'))
+}
+log.addEventListener('focusin', settle)
 rows.forEach((row, i) =>
   row.addEventListener('click', () => {
-    clearTimeout(timer)
+    settle()
     mend(i)
   }),
 )
-if (still) rows.forEach((row) => row.classList.add('mended'))
-else {
-  const watcher = new IntersectionObserver(([entry]) => {
-    if (!entry.isIntersecting) return
-    watcher.disconnect()
-    walk(0)
-  }, { threshold: 0.45 })
-  watcher.observe(document.querySelector('.error-log'))
-}
+if (still) settle()
+else watcher.observe(log)

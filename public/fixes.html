@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Fixes | Mended</title>
-  <meta name="description" content="Fixes for Walrus Memory and Sui, with verified transactions and developer reports.">
+  <meta name="description" content="Fixes for Walrus Memory and Sui, with verification counts and developer reports.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Spectral:ital,wght@1,300;1,400&display=swap" rel="stylesheet">
@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body class="tool">
+  <a class="skip" href="#main">Skip to content</a>
   <header class="nav">
     <a class="brand" href="/"><img src="/mark.svg" alt="" width="28" height="28"><span>Mended</span></a>
     <nav class="menu flat" aria-label="Main">
@@ -22,11 +23,11 @@
     <span></span>
   </header>
 
-  <main class="log">
+  <main class="log" id="main">
     <h1>Fixes</h1>
-    <p>Verified means Sui shows this address's next call or memory write succeeded after it searched. It can't show the fix caused that, and anyone can name an address.</p>
+    <p>Verified means Sui shows this address’s next call or memory write succeeded after it searched. It can’t show the fix caused that, and anyone can name an address.</p>
     <p id="stats" class="stats" aria-live="polite"></p>
-    <div id="fixes" aria-live="polite"><p class="empty">Loading fixes…</p></div>
+    <div id="fixes"><p class="empty">Loading fixes…</p></div>
   </main>
 
   <script src="/fixes.js" type="module"></script>

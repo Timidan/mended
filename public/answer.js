@@ -31,8 +31,9 @@ function questionForm(question) {
   }
   const button = el('button', { className: 'btn solid', type: 'submit', textContent: question.fix ? 'Retry memory write' : 'Save answer' })
   const message = el('p', { role: 'status' })
-  const dismiss = el('button', { className: 'btn pale', type: 'button', textContent: 'Dismiss' })
+  const dismiss = el('button', { className: 'btn line', type: 'button', textContent: 'Dismiss question' })
   dismiss.addEventListener('click', async () => {
+    if (!confirm('Dismiss this question? It leaves the queue for good.')) return
     dismiss.disabled = true
     try {
       const response = await fetch('/api/answer', {
@@ -46,7 +47,7 @@ function questionForm(question) {
       dismiss.disabled = false
     }
   })
-  form.append(button, dismiss, message)
+  form.append(el('div', { className: 'actions' }, button, dismiss), message)
   form.addEventListener('submit', async (event) => {
     event.preventDefault()
     button.disabled = true
@@ -72,7 +73,7 @@ function questionForm(question) {
       button.disabled = false
     }
   })
-  return el('section', { className: 'question' }, el('h2', { textContent: question.fix ? 'Waiting to remember' : 'Waiting for an answer' }),
+  return el('section', { className: 'question' }, el('h2', { textContent: question.fix ? 'Saved, not yet in Walrus Memory' : 'Waiting for an answer' }),
     el('time', { dateTime: question.created_at, textContent: new Date(question.created_at).toLocaleString() }),
     form)
 }
@@ -81,7 +82,7 @@ try {
   const response = await fetch('/api/answer')
   if (!response.ok) throw new Error()
   const { questions } = await response.json()
-  status.textContent = questions.length ? `${questions.length} questions to review` : 'No questions waiting for an answer.'
+  status.textContent = questions.length ? `${questions.length} ${questions.length === 1 ? 'question' : 'questions'} to review` : 'No questions waiting for an answer.'
   box.replaceChildren(...questions.map(questionForm))
 } catch {
   status.textContent = 'Unable to load questions. Check your admin token and refresh.'
