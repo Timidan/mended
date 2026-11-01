@@ -51,7 +51,7 @@
       <div class="stage"></div>
       <div class="hero-copy">
         <h1>Paste <em>your Sui error</em>.<br>Get the fix that already worked.</h1>
-        <p>See how other developers fixed the same Walrus Memory or Sui error. Mended also checks your account on chain, and marks a fix verified when your next transaction succeeds.</p>
+        <p>See how other developers fixed the same Walrus Memory or Sui error. Mended also checks your account on chain, and can mark a fix Verified when the next call or memory write succeeds for a supplied address.</p>
         <div class="actions">
           <a class="btn solid" href="/search?example=tx">See an example</a>
           <a class="btn line" href="/search#mcp">Install the MCP server</a>
@@ -75,7 +75,6 @@
             <span class="tag">Works with</span>
             <span class="logo"><img src="/logos/claude-code.svg" alt="" height="24">Claude Code</span>
             <span class="logo"><img src="/logos/codex.svg" alt="" height="24">Codex</span>
-            <span class="logo"><img src="/logos/cursor.svg" alt="" height="24">Cursor</span>
             <span class="tag">Built on</span>
             <img src="/logos/walrus.svg" alt="" height="26">
             <img src="/logos/tatum.svg" alt="" height="22">
@@ -83,7 +82,6 @@
             <span class="tag">Works with</span>
             <span class="logo"><img src="/logos/claude-code.svg" alt="" height="24">Claude Code</span>
             <span class="logo"><img src="/logos/codex.svg" alt="" height="24">Codex</span>
-            <span class="logo"><img src="/logos/cursor.svg" alt="" height="24">Cursor</span>
           </div>
         </div>
         <h2 class="mend" aria-label="You hit the error, we remember the fix">
@@ -103,10 +101,10 @@
       </div>
       <div class="error-log">
         <ol class="errors">
-          <li><button aria-expanded="true" aria-controls="e-key"><code>401 AUTH_REJECTED</code><span class="cure">Register the delegate key on your account</span></button></li>
-          <li><button aria-expanded="false" aria-controls="e-rate"><code>429 Too Many Requests</code><span class="cure">Send smaller batches</span></button></li>
-          <li><button aria-expanded="false" aria-controls="e-abort"><code>MoveAbort, code 1</code><span class="cure">The key wasn't on the account</span></button></li>
-          <li><button aria-expanded="false" aria-controls="e-net"><code>Package object does not exist</code><span class="cure">Use the Mainnet package ID</span></button></li>
+          <li><button aria-expanded="true" aria-controls="e-key"><code>401 AUTH_REJECTED</code><span class="cure">If the key is missing, register it</span></button></li>
+          <li><button aria-expanded="false" aria-controls="e-rate"><code>remember(): 429</code><span class="cure">Group writes and wait before retrying</span></button></li>
+          <li><button aria-expanded="false" aria-controls="e-abort"><code>remove_delegate_key, abort 1</code><span class="cure">The key wasn't on the account</span></button></li>
+          <li><button aria-expanded="false" aria-controls="e-net"><code>Testnet package object does not exist</code><span class="cure">Use the Mainnet package ID</span></button></li>
         </ol>
         <div class="details">
           <article class="detail" id="e-key">
@@ -121,20 +119,15 @@
             </div>
           </article>
           <article class="detail" id="e-rate" hidden>
-            <h3>429 on a bulk write</h3>
-            <p>Walrus Memory allows 60 points a minute and 500 an hour per account. See what other developers changed to stay under the limit.</p>
+            <h3>429 while calling remember</h3>
+            <p>Group facts with rememberBulk and wait for retryAfterSeconds before retrying. Extra delegate keys do not raise the account-wide limit.</p>
             <div class="art wash-b">
-              <ul class="bars">
-                <li><span>analyze</span><i style="--w:100%"></i><b>10</b></li>
-                <li><span>remember</span><i style="--w:50%"></i><b>5</b></li>
-                <li><span>ask</span><i style="--w:20%"></i><b>2</b></li>
-                <li><span>recall</span><i style="--w:10%"></i><b>1</b></li>
-              </ul>
+              <p>Group facts → Wait for the stated delay → Retry</p>
             </div>
           </article>
           <article class="detail" id="e-abort" hidden>
             <h3>Move abort with no reason</h3>
-            <p>The chain returns a function and a code. For Walrus Memory contracts, Mended tells you what the code means.</p>
+            <p>The chain returns a function and a code. When the failing call matches Walrus Memory’s account module, Mended decodes the code from its documentation.</p>
             <div class="art wash-c">
               <div class="decode">
                 <code>account::remove_delegate_key</code>
@@ -146,7 +139,7 @@
           </article>
           <article class="detail" id="e-net" hidden>
             <h3>Testnet ID on Mainnet</h3>
-            <p>A package from the wrong network reads as empty, and the error rarely mentions networks. Mended checks where your IDs exist.</p>
+            <p>Mended recognises Walrus Memory’s known Testnet package and registry IDs and shows the Mainnet configuration advice.</p>
             <div class="art wash-a">
               <dl class="sheet">
                 <div><dt><code>0xe7c1…d7f5</code></dt><dd>On Mainnet</dd></div>
@@ -200,13 +193,13 @@
       <div class="row">
         <div class="say">
           <h3>Verifies it worked</h3>
-          <p>When your next call succeeds on Sui, the fix is marked verified and linked to that transaction. Fixes with no on-chain step stay marked as reported.</p>
+          <p>For an eligible fix and a supplied address, Mended checks the next call or memory write on Sui. A successful result adds a Verified count. It cannot show that the fix caused it.</p>
         </div>
         <div class="art wash-a tall">
-          <ol class="proof">
-            <li><span class="bad">Failed</span><code>remove_delegate_key</code><time>18:40:59</time></li>
-            <li><span>Succeeded</span><code>remove_delegate_key</code><time>18:41:10</time></li>
-            <li class="gold"><strong>Verified</strong><a href="https://suiscan.xyz/mainnet/tx/DpSxt3goxewcaUGS9VJv2cxYoLMoqCbkSpqh6rQUCzua">View the transaction on Suiscan</a></li>
+          <ol class="timeline" aria-label="Verification illustration">
+            <li><span>Search</span><code>Error and address</code></li>
+            <li><span>Watch</span><code>The next call or memory write</code></li>
+            <li class="gold"><strong>Verified</strong><span>If that result succeeds on Sui</span></li>
           </ol>
         </div>
       </div>
@@ -224,11 +217,11 @@
       </details>
       <details>
         <summary>Where do the fixes come from?</summary>
-        <p>Public Walrus Memory issues, which are labelled, and fixes written by a person when Mended has no answer. All of them are stored in Walrus Memory and listed on the <a href="/fixes">Fixes page</a>.</p>
+        <p>Public Walrus Memory issues, which are labelled, and fixes written by a person when Mended has no answer. Saved answers are sent to Walrus Memory and listed on the <a href="/fixes">Fixes page</a>.</p>
       </details>
       <details>
         <summary>What makes a fix verified?</summary>
-        <p>After you search, your next call to the function the fix names has to succeed on Sui. Fixes with no on-chain step, like using smaller batches, stay marked as reported.</p>
+        <p>After you search with an address, the next call to the named function must succeed, or Sui must show the next memory write for a memory_write fix. Writes that were already working are not watched. Verified counts are distinct addresses, and anyone can name an address. Reports are separate.</p>
       </details>
       <details>
         <summary>What happens to the text I paste?</summary>

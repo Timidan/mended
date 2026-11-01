@@ -47,7 +47,7 @@ function transactionPanel(tx, retry) {
   if (tx.abort) lines.push(line('Abort code', el('span', { className: 'mono', textContent: tx.abortName ? `${tx.abort.code}, ${tx.abortName}` : tx.abort.code })))
   lines.push(line('Transaction', link(tx.href, shortDigest(tx.digest))))
   if (retry) {
-    lines.push(line('Next call', word(`${retry.ok ? 'Succeeded' : 'Failed again'}, ${gap(tx.timestamp, retry.timestamp)}`, retry.ok ? 'good' : 'bad')))
+    lines.push(line('Their next call to this function', word(`${retry.ok ? 'Succeeded' : 'Failed'}, ${gap(tx.timestamp, retry.timestamp)}`, retry.ok ? 'good' : 'bad')))
     lines.push(line('Next transaction', link(retry.href, shortDigest(retry.digest))))
   }
   return panel(`Transaction, ${tx.timestamp.slice(0, 10)} at ${clock(tx.timestamp)} UTC`, el('dl', { className: 'lines' }, ...lines))
@@ -55,10 +55,14 @@ function transactionPanel(tx, retry) {
 
 function render(r) {
   const parts = []
+  if (r.finding) {
+    parts.push(el('section', { className: 'panel-a fix-a' }, el('h3', { textContent: r.finding.name ? `Walrus docs: ${r.finding.name}` : 'Walrus docs' }), el('p', { textContent: r.finding.text })))
+  }
   if (r.fix) {
     const counts = el('p', { className: 'fix-counts', textContent: `${r.fix.verified} verified · ${r.fix.reported} reported` })
     const button = el('button', { className: 'btn pale', type: 'button', textContent: 'This worked' })
     const feedback = el('p', { className: 'report-state', role: 'status' })
+    button.hidden = !r.questionId
     button.addEventListener('click', async () => {
       button.disabled = true
       try {
@@ -76,23 +80,20 @@ function render(r) {
       }
     })
     parts.push(el('section', { className: 'panel-a fix-a memory-fix' },
-      el('h3', { textContent: r.fix.possible ? `Possible match: ${r.fix.title}` : r.fix.title }), el('p', { className: 'fix-body', textContent: r.fix.body }), counts,
+      el('h3', { textContent: r.fix.status === 'retired' ? `Retired: ${r.fix.retiredReason?.replace(/^Fixed/, 'fixed')}` : r.fix.possible ? `Possible match: ${r.fix.title}` : r.fix.title }), el('p', { className: 'fix-body', textContent: r.fix.body }), counts,
       r.fix.sourceUrl ? link(r.fix.sourceUrl, 'Source') : null, button, feedback))
   }
-  if (r.watching) parts.push(panel(null, el('p', { textContent: `Watching ${r.watching} for a successful call on Sui for up to 7 days.` })))
+  if (r.watching) parts.push(panel(null, el('p', { textContent: `Watching ${r.watching === 'memory_write' ? 'the next memory write' : `the next ${r.watching} call`} on Sui for up to 7 days.` })))
   if (r.handedOff) parts.push(panel('Waiting for an answer', el('p', { textContent: 'Sent for a person to answer. Search again later to check for a fix.' })))
-  if (r.memoryError) parts.push(panel('Memory unavailable', el('p', { textContent: 'Unable to search Walrus Memory. Any available account check is shown below.' })))
+  if (r.memoryError) parts.push(panel('Memory unavailable', el('p', { textContent: r.memoryError })))
   else if (r.memory?.connected === false) parts.push(panel('Memory not connected', el('p', { textContent: 'Remembered fixes are unavailable. You can still check your account.' })))
   if (r.chainError) parts.push(el('section', { className: 'panel-a note' }, el('p', { textContent: `Unable to read Sui through Tatum (${r.chainError}). Try again in a moment.` })))
   if (r.nothingToCheck) parts.push(el('section', { className: 'panel-a note' }, el('p', { textContent: 'Add your Sui address or account ID to check your account on chain.' })))
-  if (r.answer && !r.fix) {
-    parts.push(el('section', { className: 'panel-a fix-a' }, el('h3', { textContent: r.answer.name ? `Walrus docs: ${r.answer.name}` : 'Walrus docs' }), el('p', { textContent: r.answer.text })))
-  }
   if (r.transaction) parts.push(transactionPanel(r.transaction, r.retry))
   if (r.checks?.length) {
     parts.push(panel(null, el('dl', { className: 'lines' }, ...r.checks.map((c) => line(c.label, c.href ? link(c.href, c.value, c.tone) : word(c.value, c.tone))))))
   }
-  if (!parts.length) parts.push(el('section', { className: 'panel-a note' }, el('p', { textContent: 'No fix found for this error yet, and your account looks fine.' })))
+  if (!parts.length) parts.push(el('section', { className: 'panel-a note' }, el('p', { textContent: 'No fix found for this error yet.' })))
   answer.replaceChildren(...parts)
   examples.hidden = true
 }

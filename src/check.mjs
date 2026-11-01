@@ -1,27 +1,33 @@
 // The account check: what Sui says about the IDs and transactions in an error.
 import { MEMWAL_ABORTS } from './aborts.mjs'
 import { MEMWAL, accountOfOwner, callsAfter, readObject, readTransaction } from './sui.mjs'
+import { scrub } from './scrub.mjs'
 
 const KEY_LIMIT = 20
 const explorer = (kind, id) => `https://suiscan.xyz/mainnet/${kind}/${id}`
 const short = (id) => `${id.slice(0, 6)}…${id.slice(-4)}`
 
+export const normalizeKey = (key) => /^(?:0x)?[a-f0-9]{64}$/i.test(key)
+  ? key.replace(/^0x/i, '').toLowerCase() : Buffer.from(key, 'base64').toString('hex')
+
 export function parse(text) {
+  const prefixedKeys = [...text.matchAll(/(?:delegate(?: public)?|public|key)\s*(?:key)?\s*[:=]?\s*(0x[0-9a-f]{64})\b/gi)].map((m) => m[1])
+  text = prefixedKeys.reduce((out, k) => out.replace(k, ' '), text)
   const base64Keys = text.match(/(?<![A-Za-z0-9+/])[A-Za-z0-9+/]{43}=/g) ?? []
   const rest = base64Keys.reduce((out, k) => out.replace(k, ' '), text)
   const ids = rest.match(/\b0x[0-9a-fA-F]{64}\b/g) ?? []
   const hexKeys = rest.replace(/0x[0-9a-fA-F]{64}/g, ' ').match(/\b[0-9a-fA-F]{64}\b/g) ?? []
   const digests = rest.match(/\b[1-9A-HJ-NP-Za-km-z]{43,44}\b/g) ?? []
   return {
-    ids: [...new Set(ids.map((i) => i.toLowerCase()))],
-    keys: [...new Set([...base64Keys, ...hexKeys.map((h) => Buffer.from(h, 'hex').toString('base64'))])],
-    digests: [...new Set(digests)],
+    ids: [...new Set(ids.map((i) => i.toLowerCase()))].slice(0, 5),
+    keys: [...new Set([...base64Keys, ...hexKeys, ...prefixedKeys].map(normalizeKey))].slice(0, 5),
+    digests: [...new Set(digests)].slice(0, 2),
   }
 }
 
 const isAccount = (o) => o?.type?.endsWith('::account::MemWalAccount')
 
-async function resolveAccount(ids, sender) {
+async function resolveAccount(ids, { readObject, accountOfOwner }) {
   const unknown = []
   const notes = []
   let account = null
@@ -40,7 +46,7 @@ async function resolveAccount(ids, sender) {
   }
 
   // An ID with no object is probably an address, so look for an account owned by it
-  for (const id of [...unknown, sender].filter(Boolean)) {
+  for (const id of unknown) {
     if (account) break
     const accountId = await accountOfOwner(id)
     if (accountId) {
@@ -48,14 +54,13 @@ async function resolveAccount(ids, sender) {
       owner = id
     }
   }
-  const leftover = unknown.filter((id) => id !== owner && !account?.delegate_keys?.some((k) => k.sui_address === id))
-  return { account, notes, leftover, lookedUp: unknown.length > 0 || Boolean(sender) }
+  return { account, notes, owner: account?.owner ?? owner ?? unknown[0] ?? null, lookedUp: unknown.length > 0 }
 }
 
-function accountChecks(account, keys, ids, lookedUp) {
+function accountChecks(account, keys, lookedUp) {
   const checks = []
   if (!account) {
-    if (lookedUp) checks.push({ label: 'Account', value: 'None found', tone: 'bad' })
+    if (lookedUp) checks.push({ label: 'Account', value: 'No Walrus Memory account for this address', tone: 'bad' })
     return checks
   }
   const frozen = !account.active
@@ -67,12 +72,10 @@ function accountChecks(account, keys, ids, lookedUp) {
   })
   const used = account.delegate_keys.length
   checks.push({ label: 'Delegate keys', value: `${used} of ${KEY_LIMIT}`, tone: used >= KEY_LIMIT ? 'bad' : 'plain' })
-  const named = [...keys, ...ids]
-  if (named.length) {
-    const known = account.delegate_keys.find((k) => keys.includes(k.public_key) || ids.includes(k.sui_address))
-    const asked = keys.length > 0 || ids.some((id) => id !== account.id && id !== account.owner)
+  if (keys.length) {
+    const known = account.delegate_keys.find((k) => keys.includes(normalizeKey(k.public_key)))
     if (known) checks.push({ label: 'This key', value: `Registered as "${known.label}"`, tone: 'good' })
-    else if (asked) checks.push({ label: 'This key', value: 'Not registered', tone: 'bad' })
+    else checks.push({ label: 'This key', value: 'Not registered', tone: 'bad' })
   }
   return checks
 }
@@ -82,7 +85,7 @@ function docsAnswer({ account, checks, transaction, notes, lookedUp }) {
   const wrongNetwork = notes.find((n) => !n.onMainnet)
   if (wrongNetwork) return { text: `${wrongNetwork.what} isn't on Mainnet. Use the Mainnet IDs from Walrus's contract docs.`, verify: null }
   const abort = transaction?.abort
-  if (abort && transaction.call?.package === MEMWAL.package) {
+  if (abort && transaction.call?.package === MEMWAL.package && transaction.call.module === 'account') {
     const entry = MEMWAL_ABORTS[abort.code]
     if (entry) return { text: entry[1], name: entry[0], verify: transaction.call.function }
   }
@@ -93,14 +96,17 @@ function docsAnswer({ account, checks, transaction, notes, lookedUp }) {
   return null
 }
 
-export async function accountCheck(text, extra = '') {
-  const { ids, keys, digests } = parse(`${text}\n${extra}`)
+export async function accountCheck(text, extra = '', deps = {}) {
+  const reads = { readObject, accountOfOwner, readTransaction, callsAfter, ...deps }
+  const { ids, keys, digests } = parse(`${scrub(text)}\n${scrub(extra, { publicKeys: true })}`)
   const out = { checks: [], transaction: null, retry: null, answer: null, owner: null, chainError: null, nothingToCheck: false }
-  if (!ids.length && !keys.length && !digests.length) return { ...out, nothingToCheck: true }
+  out.delegateKey = keys[0] ?? null
+  out.asked = keys.length > 0
+  if (!ids.length && !digests.length) return { ...out, nothingToCheck: true }
 
   try {
     for (const digest of digests.slice(0, 2)) {
-      const tx = await readTransaction(digest)
+      const tx = await reads.readTransaction(digest)
       if (tx) {
         out.transaction = tx
         break
@@ -108,29 +114,28 @@ export async function accountCheck(text, extra = '') {
     }
 
     const tx = out.transaction
-    out.owner = tx?.sender ?? null
     if (tx) {
       const fn = tx.call ? `${tx.call.package}::${tx.call.module}::${tx.call.function}` : null
       if (!tx.ok && fn) {
-        const later = await callsAfter({ sender: tx.sender, fn, afterCheckpoint: tx.checkpoint, first: 1 })
+        const later = await reads.callsAfter({ sender: tx.sender, fn, afterCheckpoint: tx.checkpoint, first: 1 })
         out.retry = later[0] ?? null
       }
-      const named = tx.abort && tx.call?.package === MEMWAL.package ? MEMWAL_ABORTS[tx.abort.code]?.[0] : tx.abort?.name
+      const named = tx.abort && tx.call?.package === MEMWAL.package && tx.call.module === 'account' ? MEMWAL_ABORTS[tx.abort.code]?.[0] : tx.abort?.name
       out.transaction = { ...tx, abortName: named ?? null, href: explorer('tx', tx.digest) }
       if (out.retry) out.retry.href = explorer('tx', out.retry.digest)
     }
 
-    const { account, notes, leftover, lookedUp } = await resolveAccount(ids, tx?.sender)
-    out.owner = account?.owner ?? tx?.sender ?? null
-    out.checks.push(...accountChecks(account, keys, ids, lookedUp))
+    const { account, notes, lookedUp, owner } = await resolveAccount(ids, reads)
+    out.owner = owner
+    out.hasAccount = Boolean(account)
+    out.checks.push(...accountChecks(account, keys, lookedUp))
     for (const n of notes) {
       out.checks.push({ label: short(n.id), value: n.onMainnet ? n.what : `${n.what}, not on Mainnet`, tone: n.onMainnet ? 'good' : 'bad', href: n.onMainnet ? explorer('object', n.id) : undefined })
     }
-    if (!account) for (const id of leftover) out.checks.push({ label: short(id), value: 'Not found on Mainnet', tone: 'bad' })
     out.answer = docsAnswer({ account, checks: out.checks, transaction: out.transaction, notes, lookedUp })
     if (out.answer) out.answer.owner = out.owner
   } catch (error) {
-    out.chainError = error.message
+    out.chainError = error.code === 'BUSY' ? 'Tatum is busy. Try again shortly.' : 'Account check unavailable'
   }
   return out
 }

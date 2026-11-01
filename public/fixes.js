@@ -25,10 +25,10 @@ function verification(fix) {
   if (!links.length) return el('span', { textContent: '0' })
   if (links.length === 1) {
     links[0].textContent = String(fix.verified)
-    links[0].ariaLabel = '1 verified transaction on Suiscan'
+    links[0].ariaLabel = `${fix.verified} verified addresses on Suiscan`
     return links[0]
   }
-  return el('details', { className: 'transactions' }, el('summary', { textContent: String(fix.verified), ariaLabel: `${fix.verified} verified transactions` }),
+  return el('details', { className: 'transactions' }, el('summary', { textContent: String(fix.verified), ariaLabel: `${fix.verified} verified addresses` }),
     el('ul', {}, ...links.map((link) => el('li', {}, link))))
 }
 
@@ -50,7 +50,7 @@ function render(fixes) {
       el('td', { className: 'num' }, verification(fix)),
       el('td', { className: 'num', textContent: String(fix.reported) }),
       el('td', { textContent: fix.sdk_version || 'Not specified' }),
-      el('td', {}, sourceLink(fix)))
+      el('td', {}, sourceLink(fix), ...(fix.blob_object_id ? [el('a', { href: `https://suiscan.xyz/mainnet/object/${encodeURIComponent(fix.blob_object_id)}`, target: '_blank', rel: 'noreferrer', textContent: 'Walrus object' })] : [])))
   })
   box.replaceChildren(el('div', { className: 'table-scroll', tabIndex: 0, role: 'region', ariaLabel: 'Fixes' },
     el('table', {}, el('caption', { className: 'sr', textContent: 'Fixes and their verification history' }),

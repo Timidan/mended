@@ -9,7 +9,7 @@ test('seeding resumes missing writes and skips remembered fixes', async () => {
     const rows = [{ title: '401', error: 'token=secret123', fix: 'Register a key', source_url: 'https://example.com/issue/1' }]
     const memories = { connected: true, remember: async (fix) => {
       assert.doesNotMatch(fix.error, /secret123/)
-      return 'memory-id'
+      return { id: 'memory-id', blob_id: 'blob-one', blob_object_id: 'object-one' }
     } }
     await seedFixes(rows, { store, memories: { connected: false, remember: async () => null } })
     assert.equal((await seedFixes(rows, { store, memories })).remembered, 1)

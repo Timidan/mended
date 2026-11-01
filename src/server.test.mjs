@@ -4,10 +4,10 @@ import { Readable } from 'node:stream'
 import { createApp } from './server.mjs'
 import { createStore } from './db.mjs'
 
-function request(app, path, body, authorization) {
+function request(app, path, body, authorization, headers = {}) {
   return new Promise((resolve) => {
     const req = Readable.from(body === undefined ? [] : [JSON.stringify(body)])
-    Object.assign(req, { url: path, method: body === undefined ? 'GET' : 'POST', headers: { authorization }, socket: { remoteAddress: 'local' } })
+    Object.assign(req, { url: path, method: body === undefined ? 'GET' : 'POST', headers: { authorization, 'content-type': 'application/json', host: 'localhost', origin: 'http://localhost', ...headers }, socket: { remoteAddress: 'local' } })
     const res = { status: 200, headers: {}, setHeader(name, value) { this.headers[name] = value },
       writeHead(status, headers) {
         this.status = status
@@ -43,10 +43,10 @@ test('a person answers once and reports never add verifications', async () => {
     const memories = { connected: true, remember: async () => {
       writes += 1
       if (writes === 1) throw new Error('offline')
-      return 'memory-one'
+      return { id: 'memory-one', blob_id: 'blob-one', blob_object_id: 'object-one' }
     } }
     const app = createApp({ store, memories, adminToken: 'test-token' })
-    const body = { questionId: q.id, title: 'Register key', body: 'Register it. token=secret123' }
+    const body = { questionId: q.id, error: 'Redacted error', title: 'Register key', body: 'Register it. token=secret123' }
     const response = await request(app, '/api/answer', body, 'Bearer test-token')
     assert.equal(response.status, 200)
     assert.doesNotMatch(response.text, /secret123/)
@@ -63,7 +63,46 @@ test('a person answers once and reports never add verifications', async () => {
     assert.equal(fixes.length, 1)
     assert.equal(fixes[0].reported, 1)
     assert.equal(fixes[0].verified, 0)
+    assert.equal(fixes[0].error, undefined)
+    assert.equal(store.fix(fixes[0].id).error, 'Redacted error')
   } finally {
     store.close()
   }
+})
+
+
+test('JSON, same-host answer origin, health and security headers are enforced', async () => {
+  const store = createStore(':memory:')
+  try {
+    const app = createApp({ store, adminToken: 'token' })
+    assert.equal((await request(app, '/api/ask', {}, undefined, { 'content-type': 'text/plain' })).status, 415)
+    assert.equal((await request(app, '/api/answer', {}, 'Bearer token', { origin: 'https://elsewhere.test' })).status, 403)
+    assert.equal((await request(app, '/api/answer', {}, 'Bearer token', { origin: undefined })).status, 403)
+    const health = await request(app, '/healthz')
+    assert.equal(health.status, 200)
+    assert.equal(health.headers['x-content-type-options'], 'nosniff')
+    assert.equal(health.headers['referrer-policy'], 'no-referrer')
+    assert.match(health.headers['content-security-policy'], /fonts.googleapis.com/)
+    const q = store.addQuestion({ error: 'old error', state: 'handed_off', answered_from: 'none' })
+    assert.equal((await request(app, '/api/answer', { questionId: q.id, action: 'dismiss' }, 'Bearer token')).status, 200)
+    assert.equal(store.pending().length, 0)
+  } finally { store.close() }
+})
+
+test('failed logins are limited by last forwarded IP unless Cloudflare is trusted, and stale entries expire', async () => {
+  const store = createStore(':memory:')
+  try {
+    let now = 0
+    const app = createApp({ store, adminToken: 'token', trustCloudflare: false, now: () => now })
+    for (let i = 0; i < 20; i++) {
+      assert.equal((await request(app, '/answer', undefined, undefined, { 'x-forwarded-for': `${i}, caller`, 'cf-connecting-ip': `forged-${i}` })).status, 401)
+    }
+    assert.equal((await request(app, '/answer', undefined, undefined, { 'x-forwarded-for': 'caller' })).status, 429)
+    now = 60000
+    assert.equal((await request(app, '/answer', undefined, undefined, { 'x-forwarded-for': 'caller' })).status, 401)
+    const trusted = createApp({ store, adminToken: 'token', trustCloudflare: true })
+    for (let i = 0; i < 21; i++) {
+      assert.equal((await request(trusted, '/answer', undefined, undefined, { 'cf-connecting-ip': `caller-${i}` })).status, 401)
+    }
+  } finally { store.close() }
 })

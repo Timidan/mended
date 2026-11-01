@@ -249,14 +249,14 @@ code { font: 400 0.92em/1.4 var(--mono); }
 .fix span { font-size: 13.5px; color: var(--ink-soft); }
 .fix strong { font-size: 19px; font-weight: 500; line-height: 1.3; letter-spacing: -0.02em; }
 
-.proof { display: grid; gap: 8px; width: min(430px, 100%); }
-.proof li { display: grid; grid-template-columns: 82px minmax(0, 1fr) auto; align-items: baseline; gap: 10px; padding: 13px 16px; background: var(--paper); border-radius: 10px; font-size: 14px; }
-.proof li > span { font-weight: 600; }
-.proof code { overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
-.proof time { color: var(--ink-soft); font-variant-numeric: tabular-nums; }
-.proof .gold { grid-template-columns: 82px minmax(0, 1fr); background: var(--glaze-deep); color: var(--paper); }
-.proof .gold strong { font-weight: 600; color: var(--gold-bright); }
-.proof .gold a { font-size: 13.5px; color: rgb(246 244 238 / 0.82); text-underline-offset: 3px; }
+.timeline { display: grid; gap: 8px; width: min(430px, 100%); }
+.timeline li { display: grid; grid-template-columns: 82px minmax(0, 1fr) auto; align-items: baseline; gap: 10px; padding: 13px 16px; background: var(--paper); border-radius: 10px; font-size: 14px; }
+.timeline li > span { font-weight: 600; }
+.timeline code { overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
+.timeline time { color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.timeline .gold { grid-template-columns: 82px minmax(0, 1fr); background: var(--glaze-deep); color: var(--paper); }
+.timeline .gold strong { font-weight: 600; color: var(--gold-bright); }
+.timeline .gold a { font-size: 13.5px; color: rgb(246 244 238 / 0.82); text-underline-offset: 3px; }
 
 .faq { display: grid; gap: 8px; max-width: 1016px; margin: 0 auto; padding: clamp(88px, 11vw, 144px) var(--gutter) 0; }
 .faq h2 { margin-bottom: 40px; font-size: clamp(32px, 3.3vw, 48px); font-weight: 500; letter-spacing: -0.02em; text-align: center; }
@@ -468,3 +468,4 @@ code { font: 400 0.92em/1.4 var(--mono); }
   .tool .nav { height: auto; min-height: 65px; gap: 8px; flex-wrap: wrap; display: flex; padding-block: 10px; }
   .tool .menu.flat { gap: 18px; }
 }
+.log td a + a { margin-left: 10px; }

@@ -22,7 +22,7 @@
     "error": "401 AUTH_REJECTED",
     "fix": "Read packageId from GET /config on the relayer you call and create the account under that package, with the registry that belongs to it. The docs listed older IDs for a while; this was corrected in the contract docs.",
     "source_url": "https://github.com/MystenLabs/walrus-memory/issues/1032",
-    "verify_fn": "create_account",
+    "verify_fn": "memory_write",
     "sdk_version": "0.1.8",
     "retire_at_version": null
   },
@@ -31,7 +31,7 @@
     "error": "401 AUTH_REJECTED on every authenticated call while health() succeeds",
     "fix": "Compare the account object's type with the packageId returned by GET /config. Older accounts were moved to the current package, so first look up your account ID in the current registry by owner address (the dashboard shows it) and use that ID. Create a new account only if the registry has none for you, since a new account starts without your earlier memories.",
     "source_url": "https://github.com/MystenLabs/walrus-memory/issues/819",
-    "verify_fn": null,
+    "verify_fn": "memory_write",
     "sdk_version": null,
     "retire_at_version": null
   },
@@ -40,7 +40,7 @@
     "error": "401 from relayer: typically wrong private key, key not registered on this account, account ID mismatch, or staging/mainnet mismatch. serverCode: 'AUTH_REJECTED'",
     "fix": "accountId must be the MemWal account object ID shown in the dashboard, not your wallet address. Both are 0x plus 64 hex characters, so they are easy to swap. SDK 0.1.9 and later names this mix-up in the error.",
     "source_url": "https://github.com/MystenLabs/walrus-memory/issues/1132",
-    "verify_fn": null,
+    "verify_fn": "memory_write",
     "sdk_version": "0.1.8",
     "retire_at_version": null
   },
@@ -49,7 +49,7 @@
     "error": "401 AUTH_REJECTED",
     "fix": "Register the delegate key's public key on your account with addDelegateKey (or in the dashboard) and wait for that transaction to finish before the first remember or recall.",
     "source_url": "https://github.com/MystenLabs/walrus-memory/issues/1125",
-    "verify_fn": "add_delegate_key",
+    "verify_fn": "memory_write",
     "sdk_version": "0.1.8",
     "retire_at_version": null
   },
@@ -58,7 +58,7 @@
     "error": "401 from relayer: typically wrong private key, key not registered on this account, account ID mismatch, or staging/mainnet mismatch.",
     "fix": "Use the relayer for the network where you created the account. An account made on the Testnet dashboard only works with the Testnet relayer, and a mainnet account only works with https://relayer.memory.walrus.xyz. health() succeeds on either because it needs no sign-in.",
     "source_url": "https://github.com/MystenLabs/walrus-memory/issues/313",
-    "verify_fn": null,
+    "verify_fn": "memory_write",
     "sdk_version": "0.0.7",
     "retire_at_version": null
   },
@@ -85,7 +85,7 @@
     "error": "Walrus Memory isn't signed in. Call the memwal_login tool, then retry.",
     "fix": "memwal_login only applies to the MCP server. In SDK code this message means the relayer rejected your delegate key or account ID: check that the key is registered on that account, that accountId is the MemWal account object ID, and that the relayer matches the network. SDK 0.1.7 and later points to the AUTH_REJECTED troubleshooting guide instead.",
     "source_url": "https://github.com/MystenLabs/walrus-memory/issues/829",
-    "verify_fn": null,
+    "verify_fn": "memory_write",
     "sdk_version": "0.1.5",
     "retire_at_version": null
   },
@@ -94,7 +94,7 @@
     "error": "Error: MemWal API error (426):",
     "fix": "@mysten/memwal is an old package that the relayer now rejects as unsupported. Install @mysten-incubation/memwal instead and import MemWal from it; the same key and account ID work there.",
     "source_url": "https://github.com/MystenLabs/walrus-memory/issues/1033",
-    "verify_fn": null,
+    "verify_fn": "memory_write",
     "sdk_version": null,
     "retire_at_version": null
   },
@@ -103,7 +103,7 @@
     "error": "Uint8Array expected",
     "fix": "The delegate key passed to MemWal.create was undefined, usually because MEMWAL_PRIVATE_KEY is not set in that environment (a missing MEMWAL_ACCOUNT_ID gives a 401 AUTH_REJECTED the same way). Set both. SDK 0.1.9 and later throws a clear error from MemWal.create. withMemWal hides recall errors unless debug is on, so memory can look silently off.",
     "source_url": "https://github.com/MystenLabs/walrus-memory/issues/1041",
-    "verify_fn": null,
+    "verify_fn": "memory_write",
     "sdk_version": "0.1.8",
     "retire_at_version": null
   },
@@ -121,7 +121,7 @@
     "error": "npm i @mysten-incubation/memwal @mysten/walrus @mysten/sui -> ERESOLVE: @mysten/seal wants @mysten/sui@^2.16.2, @mysten/walrus wants ^1.x",
     "fix": "Move @mysten/walrus off 0.x. A set that resolves is @mysten/sui ^2.16.2, @mysten/seal ^1.1.3 and @mysten/walrus ^1.1.7. Refresh the lockfile and run npm why @mysten/sui to find anything still pinning v1.",
     "source_url": "https://github.com/MystenLabs/walrus-memory/issues/254",
-    "verify_fn": null,
+    "verify_fn": "memory_write",
     "sdk_version": "0.0.7",
     "retire_at_version": null
   },
@@ -130,7 +130,7 @@
     "error": "ERR_PACKAGE_PATH_NOT_EXPORTED",
     "fix": "Upgrade @mysten-incubation/memwal to 0.1.9 or later. Earlier versions declared only the import condition in package exports, so Turbopack, bundlers and CommonJS require() could not resolve the package.",
     "source_url": "https://github.com/MystenLabs/walrus-memory/issues/1143",
-    "verify_fn": null,
+    "verify_fn": "memory_write",
     "sdk_version": "0.1.7",
     "retire_at_version": null
   },
@@ -139,7 +139,7 @@
     "error": "npm ERR! Unsupported URL Type \"workspace:\"",
     "fix": "Install @mysten-incubation/oc-memwal 0.0.5 or later. Version 0.0.4 was published with an unresolved workspace dependency.",
     "source_url": "https://github.com/MystenLabs/walrus-memory/issues/279",
-    "verify_fn": null,
+    "verify_fn": "memory_write",
     "sdk_version": null,
     "retire_at_version": null
   },
@@ -148,7 +148,7 @@
     "error": "Walrus Memory server error (429): {\"error\":\"Rate limit exceeded\",\"layer\":\"delegate_key\",\"limit\":\"30 weighted-requests/min\",\"retry_after_seconds\":60}",
     "fix": "A write costs more of the per-key budget than a recall, so a loop of remember() calls hits the limit quickly. Send several facts together with rememberBulk, and on a 429 wait for retryAfterSeconds before retrying. The per-endpoint costs are listed in the relayer docs.",
     "source_url": "https://github.com/MystenLabs/walrus-memory/issues/686",
-    "verify_fn": null,
+    "verify_fn": "memory_write",
     "sdk_version": null,
     "retire_at_version": null
   },
@@ -157,7 +157,7 @@
     "error": "429, layer \"account_burst\", limit 120 weighted-requests/min",
     "fix": "The account-wide limit applies across all delegate keys by design, so extra keys add no capacity. Spread writes out, group facts with rememberBulk, and wait for retry_after_seconds when you get a 429.",
     "source_url": "https://github.com/MystenLabs/walrus-memory/issues/1116",
-    "verify_fn": null,
+    "verify_fn": "memory_write",
     "sdk_version": "0.1.8",
     "retire_at_version": null
   },

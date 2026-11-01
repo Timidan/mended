@@ -9,8 +9,9 @@ function el(tag, props = {}, ...children) {
 
 function questionForm(question) {
   const fields = [
+    ['error', 'Error text to publish (redact private details)', 'textarea', true],
     ['title', 'Title', 'input', true], ['body', 'Fix', 'textarea', true],
-    ['verify_fn', 'Sui function to watch (optional)', 'input', false],
+    ['verify_fn', 'Sui function or memory_write (optional)', 'input', false],
     ['source_url', 'Source URL (optional)', 'input', false],
     ['sdk_version', 'SDK version (optional)', 'input', false],
     ['retire_at_version', 'Retire at SDK version (optional)', 'input', false],
@@ -19,6 +20,7 @@ function questionForm(question) {
   for (const [name, text, tag, required] of fields) {
     const id = `${question.id}-${name}`
     const input = el(tag, { id, name, required })
+    if (name === 'error') input.value = question.error
     if (question.fix) {
       input.value = question.fix[name] ?? ''
       input.readOnly = true
@@ -29,7 +31,22 @@ function questionForm(question) {
   }
   const button = el('button', { className: 'btn solid', type: 'submit', textContent: question.fix ? 'Retry memory write' : 'Save answer' })
   const message = el('p', { role: 'status' })
-  form.append(button, message)
+  const dismiss = el('button', { className: 'btn pale', type: 'button', textContent: 'Dismiss' })
+  dismiss.addEventListener('click', async () => {
+    dismiss.disabled = true
+    try {
+      const response = await fetch('/api/answer', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ questionId: question.id, action: 'dismiss' }),
+      })
+      if (!response.ok) throw new Error()
+      form.closest('section').remove()
+    } catch {
+      message.textContent = 'Unable to dismiss. Try again.'
+      dismiss.disabled = false
+    }
+  })
+  form.append(button, dismiss, message)
   form.addEventListener('submit', async (event) => {
     event.preventDefault()
     button.disabled = true
@@ -41,12 +58,13 @@ function questionForm(question) {
       })
       const body = await response.json()
       if (!response.ok) throw new Error(body.error)
+      for (const input of form.querySelectorAll('input, textarea')) input.readOnly = true
       if (body.memoryError || !body.memory.connected) {
         message.textContent = body.memoryError || 'Answer saved. Connect Walrus Memory, then retry to remember it.'
         button.textContent = 'Retry memory write'
         button.disabled = false
       } else {
-        message.textContent = 'Answer saved and remembered.'
+        message.textContent = body.linkError || 'Answer saved and remembered.'
         button.textContent = 'Answered'
       }
     } catch (error) {
@@ -56,7 +74,7 @@ function questionForm(question) {
   })
   return el('section', { className: 'question' }, el('h2', { textContent: question.fix ? 'Waiting to remember' : 'Waiting for an answer' }),
     el('time', { dateTime: question.created_at, textContent: new Date(question.created_at).toLocaleString() }),
-    el('pre', { textContent: question.error }), form)
+    form)
 }
 
 try {
