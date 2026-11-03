@@ -29,7 +29,7 @@ function questionForm(question) {
     if (name === 'source_url') input.type = 'url'
     form.append(el('label', { htmlFor: id, textContent: text }), input)
   }
-  const button = el('button', { className: 'btn solid', type: 'submit', textContent: question.fix ? 'Retry memory write' : 'Save answer' })
+  const button = el('button', { className: 'btn solid', type: 'submit', textContent: question.fix?.caller ? 'Approve fix' : question.fix ? 'Retry memory write' : 'Save answer' })
   const message = el('p', { role: 'status' })
   const dismiss = el('button', { className: 'btn line', type: 'button', textContent: 'Dismiss question' })
   dismiss.addEventListener('click', async () => {
@@ -73,7 +73,7 @@ function questionForm(question) {
       button.disabled = false
     }
   })
-  return el('section', { className: 'question' }, el('h2', { textContent: question.fix ? 'Saved, not yet in Walrus Memory' : 'Waiting for an answer' }),
+  return el('section', { className: 'question' }, el('h2', { textContent: question.fix?.caller ? 'Saved by an agent, not confirmed on Sui' : question.fix ? 'Saved, not yet in Walrus Memory' : 'Waiting for an answer' }),
     el('time', { dateTime: question.created_at, textContent: new Date(question.created_at).toLocaleString() }),
     form)
 }

@@ -17,7 +17,7 @@ function sourceLink(fix) {
       return el('a', { href: url.href, target: '_blank', rel: 'noreferrer', textContent: text, ariaLabel: `${text} for ${fix.title}` })
     }
   } catch {}
-  return el('span', { textContent: fix.source === 'person' ? 'Developer answer' : 'Unavailable' })
+  return el('span', { textContent: fix.agent ? 'Saved by an agent' : fix.source === 'person' ? 'Developer answer' : 'Unavailable' })
 }
 
 function verification(fix) {
@@ -81,5 +81,5 @@ else box.replaceChildren(el('p', { className: 'empty', textContent: 'Unable to l
 if (results[1].status === 'fulfilled') {
   const data = results[1].value
   const today = data.days.find((d) => d.day === new Date().toISOString().slice(0, 10))
-  stats.textContent = `${count(data.questions, 'question')} · ${data.memory} answered from memory · ${count(today?.questions ?? 0, 'question')} today (UTC)`
+  stats.textContent = `${count(data.questions, 'question')} · ${data.memory} answered from memory · ${data.agentFixes} saved by agents · ${count(today?.questions ?? 0, 'question')} today (UTC)`
 } else stats.textContent = 'Question counts are unavailable.'

@@ -83,6 +83,7 @@ function render(r) {
     parts.push(el('section', { className: 'panel-a fix-a memory-fix' },
       el('h2', { textContent: r.fix.possible ? `Possible match: ${r.fix.title}` : r.fix.title }),
       r.fix.status === 'retired' ? el('p', { className: 'fix-retired', textContent: r.fix.retiredReason ? `Retired: ${r.fix.retiredReason.replace(/^Fixed/, 'fixed')}` : 'Retired' }) : null,
+      r.fix.agent ? el('p', { className: 'fix-counts', textContent: 'Saved by another developer’s agent. Check it before you use it.' }) : null,
       el('p', { className: 'fix-body', textContent: r.fix.body }), counts,
       r.fix.sourceUrl ? link(r.fix.sourceUrl, 'Source') : null, button, feedback))
   }
@@ -135,26 +136,6 @@ form.addEventListener('submit', (e) => {
   run()
 })
 for (const b of document.querySelectorAll('[data-example]')) b.addEventListener('click', () => useExample(b.dataset.example))
-
-const url = `${location.origin}/mcp`
-document.querySelector('#cmd-claude').textContent = `claude mcp add --transport http mended ${url}`
-document.querySelector('#cmd-codex').textContent = `codex mcp add mended --url ${url}`
-document.querySelector('#mcp-url').textContent = url
-const copied = document.querySelector('#copied')
-for (const b of document.querySelectorAll('[data-copy]')) {
-  b.addEventListener('click', async () => {
-    try {
-      await navigator.clipboard.writeText(document.getElementById(b.dataset.copy).textContent)
-      b.textContent = copied.textContent = 'Copied'
-    } catch {
-      b.textContent = copied.textContent = 'Unable to copy'
-    }
-    setTimeout(() => {
-      b.textContent = 'Copy'
-      copied.textContent = ''
-    }, 1500)
-  })
-}
 
 const asked = new URLSearchParams(location.search).get('example')
 if (asked) useExample(asked)

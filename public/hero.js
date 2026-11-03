@@ -89,7 +89,7 @@ function build(count) {
 
 const vertex = `
 attribute vec3 aPos, aNormal, aDrift, aMeta;
-uniform float uYaw, uPitch, uScale, uPhase, uSize, uTime;
+uniform float uYaw, uPitch, uScale, uPhase, uSize, uTime, uDark;
 uniform vec2 uCentre, uRes;
 varying vec4 vColor;
 void main() {
@@ -106,8 +106,11 @@ void main() {
   vec2 s = uCentre + uScale * q.xy * depth;
   gl_Position = vec4(s / uRes * 2.0 - 1.0, -q.z * 0.4, 1.0);
   gl_PointSize = uSize * depth * (1.0 + seam * 0.55);
-  vec3 c = mix(vec3(0.05, 0.16, 0.19), vec3(0.38, 0.56, 0.58), pow(light, 1.5)) + (grain - 0.5) * 0.09;
-  c = mix(c, vec3(0.78, 0.58, 0.2) + (grain - 0.5) * 0.22, seam);
+  vec3 shade = mix(vec3(0.05, 0.16, 0.19), vec3(0.15, 0.3, 0.33), uDark);
+  vec3 lit = mix(vec3(0.38, 0.56, 0.58), vec3(0.64, 0.8, 0.8), uDark);
+  vec3 gold = mix(vec3(0.78, 0.58, 0.2), vec3(0.95, 0.76, 0.36), uDark);
+  vec3 c = mix(shade, lit, pow(light, 1.5)) + (grain - 0.5) * 0.09;
+  c = mix(c, gold + (grain - 0.5) * 0.22, seam);
   vColor = vec4(c, 1.0 - k * 0.5);
 }`
 
@@ -141,7 +144,7 @@ if (gl) {
     gl.enableVertexAttribArray(at)
     gl.vertexAttribPointer(at, 3, gl.FLOAT, false, 48, i * 12)
   })
-  const u = Object.fromEntries(['uYaw', 'uPitch', 'uScale', 'uPhase', 'uSize', 'uTime', 'uCentre', 'uRes'].map((n) => [n, gl.getUniformLocation(program, n)]))
+  const u = Object.fromEntries(['uYaw', 'uPitch', 'uScale', 'uPhase', 'uSize', 'uTime', 'uDark', 'uCentre', 'uRes'].map((n) => [n, gl.getUniformLocation(program, n)]))
 
   gl.enable(gl.DEPTH_TEST)
   gl.enable(gl.BLEND)
@@ -157,9 +160,10 @@ if (gl) {
     gl.viewport(0, 0, canvas.width, canvas.height)
     gl.uniform2f(u.uRes, canvas.width, canvas.height)
     gl.uniform2f(u.uCentre, (area.left - box.left + area.width / 2) * dpr, (box.bottom - area.top - area.height * 0.46 - 8) * dpr)
-    gl.uniform1f(u.uScale, Math.min(area.width * 0.3, (area.height - 65) * 0.54) * dpr)
+    gl.uniform1f(u.uScale, Math.min(area.width * 0.3, (area.height - 20) * 0.56) * dpr)
     gl.uniform1f(u.uSize, 1.7 * dpr)
     gl.uniform1f(u.uPitch, 0.46)
+    gl.uniform1f(u.uDark, document.documentElement.dataset.theme === 'dark' ? 1 : 0)
   }
 
   const draw = (ms) => {
@@ -181,6 +185,7 @@ if (gl) {
     if (still) draw(0)
   }
   addEventListener('resize', refresh)
+  addEventListener('themechange', refresh)
   refresh()
   document.fonts?.ready.then(refresh)
 

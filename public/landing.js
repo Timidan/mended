@@ -105,3 +105,35 @@ rows.forEach((row, i) =>
 )
 if (still) settle()
 else watcher.observe(log)
+
+// Install commands use the address this page is served from.
+const mcp = `${location.origin}/mcp`
+const COMMANDS = {
+  'Claude Code': `claude mcp add --transport http mended ${mcp}`,
+  Codex: `codex mcp add mended --url ${mcp}`,
+  'Other clients': mcp,
+}
+const command = document.querySelector('#install')
+const clients = [...document.querySelectorAll('.clients button')]
+const pick = (client) => {
+  clients.forEach((b) => b.setAttribute('aria-pressed', String(b === client)))
+  command.textContent = COMMANDS[client.textContent]
+}
+clients.forEach((b) => b.addEventListener('click', () => pick(b)))
+pick(clients[0])
+
+const copied = document.querySelector('#copied')
+for (const copy of document.querySelectorAll('.copy')) {
+  copy.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(copy.previousElementSibling.textContent)
+      copy.textContent = copied.textContent = 'Copied'
+    } catch {
+      copy.textContent = copied.textContent = 'Unable to copy'
+    }
+    setTimeout(() => {
+      copy.textContent = 'Copy'
+      copied.textContent = ''
+    }, 1500)
+  })
+}

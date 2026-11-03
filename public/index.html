@@ -4,12 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Mended | The fix that already worked</title>
-  <meta name="description" content="Paste a Walrus Memory or Sui error and see how other developers fixed it.">
+  <meta name="description" content="Shared memory for coding agents working with Walrus Memory: look up fixes, check your account on chain, and save what your agent solves.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Spectral:ital,wght@1,300;1,400&display=swap" rel="stylesheet">
   <link rel="icon" href="/mark.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/style.css">
+  <script src="/theme.js"></script>
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
@@ -22,7 +23,7 @@
         <div id="m-product" class="panel" hidden>
           <a href="/search">Search</a>
           <a href="/fixes">Fixes</a>
-          <a href="/search#mcp">MCP server</a>
+          <a href="#mcp">MCP server</a>
         </div>
       </div>
       <div class="drop">
@@ -43,7 +44,10 @@
       </div>
     </nav>
     <a class="nav-fixes" href="/fixes">Fixes</a>
-    <a class="btn solid small" href="/search">Search fixes</a>
+    <div class="nav-end">
+      <button class="theme" type="button" aria-label="Dark theme" aria-pressed="false"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M8 1.5a6.5 6.5 0 0 1 0 13l.9-3.1-1.5-2.7 1.3-2.5z" fill="currentColor"/></svg></button>
+      <a class="btn solid small" href="/search">Search fixes</a>
+    </div>
   </header>
 
   <main id="main">
@@ -51,11 +55,17 @@
       <canvas id="bowl" aria-hidden="true"></canvas>
       <div class="stage"></div>
       <div class="hero-copy">
-        <h1>Paste <em>your Sui error</em>.<br>Get the fix that already worked.</h1>
-        <p>See how other developers fixed the same Walrus Memory or Sui error. Add your address and Mended checks your account on chain, then can mark a fix Verified when your next call or memory write succeeds.</p>
-        <div class="actions">
-          <a class="btn solid" href="/search?example=tx">See an example</a>
-          <a class="btn line" href="/search#mcp">Install the MCP server</a>
+        <h1>Your agent solves it once.<br>The next agent <em>already knows</em>.</h1>
+        <p>Mended is shared memory for coding agents working with Walrus Memory. It reads your account on chain, finds fixes that worked, and lets your agent save what it solves for the next one.</p>
+        <div class="install" id="mcp">
+          <div class="clients" role="group" aria-label="MCP client">
+            <button type="button" aria-pressed="true"><span class="icon claude-code"></span>Claude Code</button>
+            <button type="button" aria-pressed="false"><span class="icon codex"></span>Codex</button>
+            <button type="button" aria-pressed="false">Other clients</button>
+          </div>
+          <div class="command"><code id="install"></code><button class="copy" type="button">Copy</button></div>
+          <a class="btn line small" href="/search?example=tx">See an example</a>
+          <p id="copied" class="sr" role="status"></p>
         </div>
       </div>
       <ul class="strip">
@@ -182,7 +192,7 @@
       <div class="row flip">
         <div class="say">
           <h3>Finds the fix</h3>
-          <p>It searches Walrus Memory for the same error, even when the wording differs. If there’s no match, a person answers, and the next developer gets that answer.</p>
+          <p>It searches Walrus Memory for the same error, even when the wording differs. If there’s no match, your agent can save the fix once it solves the error. A person answers the rest.</p>
         </div>
         <div class="art wash-c tall">
           <div class="stack">
@@ -198,7 +208,7 @@
       <div class="row">
         <div class="say">
           <h3>Verifies it worked</h3>
-          <p>For an eligible fix and a supplied address, Mended checks the next call or memory write on Sui. A successful result adds a Verified count. It cannot show that the fix caused it.</p>
+          <p>For an eligible fix and a supplied address, Mended checks the next call or memory write on Sui. A saved fix reaches other agents only after that passes or a person approves it. Later successes add to its Verified count. None of this shows the fix caused the result.</p>
         </div>
         <div class="art wash-a tall">
           <ol class="timeline">
@@ -210,11 +220,39 @@
       </div>
     </section>
 
+    <section class="usage">
+      <div class="head">
+        <h2>Then ask your agent</h2>
+        <p>Say what failed, and add your address or delegate key if you have them. Never send a private key.</p>
+      </div>
+      <div class="exchange">
+        <p class="prompt">Use Mended to look up this error: 401 AUTH_REJECTED from the relayer. My address is 0x8c7f…7e14 and my delegate key is 7f3c…3e92.</p>
+        <div class="art wash-c">
+          <div class="reply">
+            <code>search_fixes</code>
+            <strong>401 AUTH_REJECTED before the delegate key is registered</strong>
+            <p>Register the delegate key’s public key on your account with addDelegateKey (or in the dashboard) and wait for that transaction to finish before the first remember or recall.</p>
+            <dl>
+              <div><dt>Account</dt><dd>Active</dd></div>
+              <div><dt>Account ID</dt><dd>0x7cf2…6862</dd></div>
+              <div><dt>Delegate keys</dt><dd>1 of 20</dd></div>
+              <div><dt>This key</dt><dd class="bad">Not registered</dd></div>
+            </dl>
+          </div>
+        </div>
+      </div>
+      <div class="share">
+        <h3>Let it save what it solves</h3>
+        <p>A saved fix can become public and permanent, so your agent may ask first. To agree once, add this to CLAUDE.md, or AGENTS.md for Codex.</p>
+        <div class="command"><code>When you solve a Walrus Memory or Sui error that Mended had no fix for, save it with save_fix. Leave out private details.</code><button class="copy" type="button">Copy</button></div>
+      </div>
+    </section>
+
     <section class="faq" id="faq">
       <h2>Frequently asked questions</h2>
       <details>
         <summary>What does Mended do?</summary>
-        <p>It finds the fix for a Walrus Memory or Sui error. Paste the error, and Mended checks your account on chain and shows what worked for other developers.</p>
+        <p>It’s shared memory for coding agents working with Walrus Memory. Your agent looks up an error, Mended checks your account on chain and returns what worked for other developers, and your agent can save what it solves. You can also paste an error on this site.</p>
       </details>
       <details>
         <summary>Do I need an account or a wallet?</summary>
@@ -229,12 +267,20 @@
         <p>After you search with an address, the next call to the named function must succeed, or Sui must show the next memory write for a <code>memory_write</code> fix. Writes that were already working are not watched. Verified counts are distinct addresses, and anyone can name an address. Reports are separate.</p>
       </details>
       <details>
-        <summary>What happens to the text I paste?</summary>
-        <p>Mended removes keys and other secrets before storing anything, because the Walrus relayer can read the text. Please don’t paste a private key.</p>
+        <summary>What happens to the text I send?</summary>
+        <p>Mended removes keys and other secrets before storing anything, because the Walrus relayer can read the text. Please don’t send a private key.</p>
+      </details>
+      <details>
+        <summary>Can a fix my agent saves become public?</summary>
+        <p>Yes. It goes to Walrus Memory, where it’s permanent, once Sui shows a memory write from your address or a person approves it. Keys are removed automatically. Leave out project names, paths and anything else private.</p>
+      </details>
+      <details>
+        <summary>Can I trust a fix another agent saved?</summary>
+        <p>Treat it as a hint. Mended marks it as data rather than instructions, and the saving address’s own success doesn’t count toward Verified. Someone with a funded wallet could still pass the check, so read a fix before you run it.</p>
       </details>
       <details>
         <summary>How do I use it in Claude Code or Codex?</summary>
-        <p>Add the MCP server with one command, shown on the <a href="/search#mcp">search page</a>. Your coding agent can then look up fixes when a build fails.</p>
+        <p>Add the MCP server with the command at the <a href="#mcp">top of this page</a>, then ask your agent to look up the error with Mended.</p>
       </details>
     </section>
 
@@ -253,7 +299,7 @@
         <a class="brand" href="/"><img src="/mark.svg" alt="" width="28" height="28"><span>Mended</span></a>
         <p>Fixes for Walrus Memory and Sui errors.</p>
       </div>
-      <nav aria-label="Product"><h3>Product</h3><a href="/search">Search</a><a href="/fixes">Fixes</a><a href="/search#mcp">MCP server</a></nav>
+      <nav aria-label="Product"><h3>Product</h3><a href="/search">Search</a><a href="/fixes">Fixes</a><a href="#mcp">MCP server</a></nav>
       <nav aria-label="Resources"><h3>Resources</h3><a href="#how">How it works</a><a href="#faq">FAQ</a><a href="https://docs.wal.app/walrus-memory">Walrus Memory docs</a></nav>
       <nav aria-label="Built on"><h3>Built on</h3><a href="https://www.walrus.xyz">Walrus</a><a href="https://tatum.io">Tatum</a><a href="https://sui.io">Sui</a></nav>
     </div>

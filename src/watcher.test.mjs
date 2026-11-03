@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { createStore } from './db.mjs'
-import { watchQuestions } from './watcher.mjs'
+import { createStore, shareable } from './db.mjs'
+import { publishVerified, watchQuestions } from './watcher.mjs'
+import { saveFix } from './save.mjs'
 
 const now = Date.parse('2026-11-01T12:00:00Z')
 const tx = { sender: 'owner', owner: 'owner', checkpoint: '101', timestamp: '2026-11-01T11:01:00Z', ok: true, digest: 'succeeded' }
@@ -67,4 +68,53 @@ test('memory writes need the named delegate and do not skip an earlier mismatchi
     assert.equal(store.fix(good.fix.id).verified, 1)
     assert.equal(store.question(bad.question.id).watch_state, 'stopped')
   } finally { store.close() }
+})
+
+test('an agent fix reaches memory only after its address writes on Sui, without counting as verified', async () => {
+  const store = createStore(':memory:')
+  try {
+    const q = store.addQuestion({ error: 'Unknown failure', owner: 'owner', checkpoint: '100', answered_from: 'none', state: 'handed_off', created_at: '2026-11-01T11:00:00Z' })
+    const save = { question_id: q.id, error: 'Unknown failure', title: 'Fix', fix: 'Do this' }
+    const { id, watching } = await saveFix(save, { store, recent: async () => false })
+    assert.equal(watching, 'owner')
+    await assert.rejects(saveFix(save, { store, recent: async () => false }), /already has an answer/)
+    assert.equal(shareable(store.fix(id)), false)
+    assert.equal(store.pending().length, 0)
+
+    const memories = { remember: async () => ({ id: 'memory', blob_id: 'blob' }) }
+    assert.equal(await publishVerified({ store, memories }), 0)
+    const readWrites = async () => [{ ...tx, blobs: [{ agentId: 'key' }] }]
+    assert.equal((await watchQuestions({ store, readWrites, now })).verified, 1)
+    assert.equal(await publishVerified({ store, memories }), 1)
+    assert.equal(shareable(store.fix(id)), true)
+    assert.equal(store.fix(id).verified, 0)
+  } finally {
+    store.close()
+  }
+})
+
+test('an agent fix Sui cannot check waits for a person', async () => {
+  const store = createStore(':memory:')
+  try {
+    const q = store.addQuestion({ error: 'Unknown failure', answered_from: 'none', state: 'handed_off' })
+    const { watching } = await saveFix({ question_id: q.id, error: 'Unknown failure', title: 'Fix', fix: 'Do this' }, { store })
+    assert.equal(watching, null)
+    assert.equal(store.pending()[0].id, q.id)
+  } finally {
+    store.close()
+  }
+})
+
+test('an agent can replace a stored fix that did not solve its error', async () => {
+  const store = createStore(':memory:')
+  try {
+    const { fix, question } = add(store, 'memory_write')
+    const { id, watching } = await saveFix({ question_id: question.id, error: 'Other failure', title: 'Fix', fix: 'Do this' }, { store, recent: async () => false })
+    assert.equal(watching, 'owner')
+    assert.equal(store.question(question.id).fix_id, id)
+    assert.notEqual(id, fix.id)
+    assert.equal(store.stats().memory, 0)
+  } finally {
+    store.close()
+  }
 })

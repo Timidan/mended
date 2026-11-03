@@ -14,6 +14,8 @@ export function migrate(db) {
     }
     add('fixes', 'blob_object_id', 'TEXT')
     add('fixes', 'blob_id', 'TEXT')
+    add('fixes', 'caller', 'TEXT') // set on fixes saved by agents, whose source stays 'person'
+    add('fixes', 'author', 'TEXT')
     add('questions', 'delegate_key', 'TEXT')
     add('questions', 'watch_state', "TEXT NOT NULL DEFAULT 'stopped'")
     add('questions', 'dismissed', 'INTEGER NOT NULL DEFAULT 0')

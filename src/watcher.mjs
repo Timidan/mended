@@ -1,6 +1,7 @@
 import { MEMWAL, callsAfter, writesAfter, accountOfOwner, readObject } from './sui.mjs'
 import { normalizeKey } from './check.mjs'
 import { getStore } from './db.mjs'
+import * as memory from './memory.mjs'
 
 const WEEK = 7 * 86400000
 
@@ -49,6 +50,20 @@ export async function watchQuestions({ store = getStore(), readCalls = callsAfte
   return { verified, failed }
 }
 
+export async function publishVerified({ store = getStore(), memories = memory } = {}) {
+  let published = 0
+  for (const fix of store.unpublished()) {
+    try {
+      const id = await memories.remember(fix)
+      if (id) {
+        store.remember(fix.id, id)
+        published += 1
+      }
+    } catch {} // left unpublished, so the next run retries it
+  }
+  return published
+}
+
 export function startWatcher() {
   let running = false
   const timer = setInterval(async () => {
@@ -57,6 +72,7 @@ export function startWatcher() {
     try {
       const { failed } = await watchQuestions()
       if (failed) console.warn(`Tatum unavailable for ${failed} verification checks`)
+      await publishVerified()
     } catch {
       console.warn('Verification check unavailable')
     } finally {

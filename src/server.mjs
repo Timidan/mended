@@ -5,10 +5,11 @@ import { extname, join, normalize, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { searchFixes } from './search.mjs'
 import { handleMcp } from './mcp.mjs'
-import { getStore } from './db.mjs'
+import { getStore, shareable } from './db.mjs'
 import * as memory from './memory.mjs'
-import { scrub, limitText } from './scrub.mjs'
-import { MEMWAL, withSignal } from './sui.mjs'
+import { answerFields } from './fields.mjs'
+import { saveFix } from './save.mjs'
+import { withSignal } from './sui.mjs'
 import { startWatcher } from './watcher.mjs'
 import { startRetiring } from './retire.mjs'
 
@@ -64,27 +65,11 @@ function authorized(req, token) {
   return a.length === b.length && timingSafeEqual(a, b)
 }
 
-function answerFields(body) {
-  const title = scrub(String(body.title ?? '').trim())
-  const text = scrub(String(body.body ?? '').trim())
-  const fn = String(body.verify_fn ?? '').trim().replace(`${MEMWAL.package}::`, '') || null
-  const source = String(body.source_url ?? '').trim() || null
-  if (!title || !text) throw new Error('Add a title and a fix.')
-  if (fn && !/^(?:[a-zA-Z_]\w*::)?[a-zA-Z_]\w*$/.test(fn)) throw new Error('Use a function name or module::function.')
-  if (source) {
-    const url = new URL(source)
-    if (!['https:', 'http:'].includes(url.protocol) || url.username || url.password) throw new Error('Use a public source URL.')
-  }
-  if (typeof body.error !== 'string' || !body.error.trim()) throw new Error('Review the error text.')
-  return { error: limitText(scrub(body.error.trim())), title, body: text, verify_fn: fn, source_url: source ? scrub(source) : null,
-    sdk_version: scrub(String(body.sdk_version ?? '').trim()) || null,
-    retire_at_version: scrub(String(body.retire_at_version ?? '').trim()) || null }
-}
-
 export function createApp({ store = getStore(), search = searchFixes, memories = memory, adminToken = process.env.ADMIN_TOKEN, now = Date.now, trustCloudflare = process.env.TRUST_CLOUDFLARE === '1' } = {}) {
   const asks = new Map()
   const caller = (req) => trustCloudflare && req.headers['cf-connecting-ip']
     ? req.headers['cf-connecting-ip'] : String(req.headers['x-forwarded-for'] ?? req.socket.remoteAddress).split(',').at(-1).trim()
+  const dailyCaller = (req) => createHash('sha256').update(`${new Date(now()).toISOString().slice(0, 10)}:${caller(req)}`).digest('hex')
   function overLimit(req) {
     // The proxy appends the real caller last; anything earlier in the header is client-supplied
     const ip = caller(req)
@@ -115,9 +100,9 @@ export function createApp({ store = getStore(), search = searchFixes, memories =
         return send(res, 401, 'Use the admin token as your password.')
       }
     }
-    if (path === '/api/fixes' && req.method === 'GET') return json(res, 200, { fixes: store.fixes().map((fix) => {
+    if (path === '/api/fixes' && req.method === 'GET') return json(res, 200, { fixes: store.fixes().filter(shareable).map(({ caller: saved, author, ...fix }) => {
       const { error, ...publicFix } = fix
-      return fix.source === 'person' ? publicFix : fix
+      return { ...(fix.source === 'person' ? publicFix : fix), agent: Boolean(saved) }
     }) })
     if (path === '/api/stats' && req.method === 'GET') return json(res, 200, store.stats())
     if (path === '/api/answer' && req.method === 'GET') return json(res, 200, { questions: store.pending() })
@@ -138,7 +123,7 @@ export function createApp({ store = getStore(), search = searchFixes, memories =
           : { error: 'That was too long or not valid JSON.' })
       }
       if (path === '/mcp') {
-        const result = await handleMcp(body, search)
+        const result = await handleMcp(body, search, (args) => saveFix(args, { store, caller: dailyCaller(req) }))
         return result ? json(res, 200, result) : res.writeHead(202).end()
       }
       if (path === '/api/ask') {
@@ -149,8 +134,7 @@ export function createApp({ store = getStore(), search = searchFixes, memories =
       }
       const questionId = String(body.questionId ?? '')
       if (path === '/api/report') {
-        const hash = createHash('sha256').update(`${new Date(now()).toISOString().slice(0, 10)}:${caller(req)}`).digest('hex')
-        const fix = store.report(questionId, hash, new Date(now()).toISOString())
+        const fix = store.report(questionId, dailyCaller(req), new Date(now()).toISOString())
         return fix ? json(res, 200, { reported: fix.reported }) : json(res, 404, { error: 'No fix found for this question.' })
       }
       const question = store.question(questionId)

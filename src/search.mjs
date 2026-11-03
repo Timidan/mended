@@ -1,12 +1,14 @@
 import { accountCheck, parse } from './check.mjs'
 import { latestCheckpoint, recentWrite, MEMWAL } from './sui.mjs'
 import { scrub, limitText } from './scrub.mjs'
-import { getStore } from './db.mjs'
+import { getStore, shareable } from './db.mjs'
 import * as memory from './memory.mjs'
 import { SURE_DISTANCE, MAX_DISTANCE } from './memory.mjs'
 
 const TOKEN = /\b(?:[1-5]\d\d|[A-Za-z]+[A-Z0-9][A-Za-z0-9_]*|[a-z]+_[a-z_]+)\b/g
-const tokens = (text) => new Set(text.match(TOKEN) ?? [])
+// Words nearly every Walrus Memory error shares are not evidence of the same error
+const COMMON = /^(?:memwal|id|error|typeerror)$/i
+const tokens = (text) => new Set((text.match(TOKEN) ?? []).filter((token) => !COMMON.test(token)))
 const sharesToken = (a, b) => [...tokens(a)].some((token) => tokens(b).has(token))
 const kind = (fn) => fn?.replace(`${MEMWAL.package}::`, '').replace(/^account::/, '')
 const EXAMPLES = new Set([
@@ -46,7 +48,8 @@ export async function searchFixes(error, address = '', { store = getStore(), che
     ? recalled.reason?.code === 'BUSY' ? 'Memory is busy. Try again shortly.' : 'Walrus Memory unavailable' : null
   const hits = recalled.status === 'fulfilled' ? recalled.value : []
   const candidates = hits.map((hit) => ({ ...hit, fix: store.fix(hit.id) })).filter(({ fix, distance }) =>
-    fix && distance < MAX_DISTANCE && (distance < SURE_DISTANCE || sharesToken(clean, fix.error)) && relevant(fix, finding, clean))
+    // Saved text is long and general, so closeness alone matched unrelated errors in testing
+    fix && shareable(fix) && distance < MAX_DISTANCE && ((distance < SURE_DISTANCE && !fix.caller) || sharesToken(clean, fix.error)) && relevant(fix, finding, clean))
   candidates.sort((a, b) => Number(b.fix.status === 'active') - Number(a.fix.status === 'active') ||
     Number(Boolean(finding?.verify) && kind(b.fix.verify_fn) === kind(finding.verify)) - Number(Boolean(finding?.verify) && kind(a.fix.verify_fn) === kind(finding.verify)) || a.distance - b.distance)
   const hit = candidates[0]
@@ -67,13 +70,13 @@ export async function searchFixes(error, address = '', { store = getStore(), che
   }
   const answeredFrom = fix ? 'memory' : finding ? 'docs' : 'none'
   const canRecord = clean && !example && (answeredFrom !== 'none' || (connected && !memoryError && !result.chainError))
-  const question = canRecord ? store.addQuestion({ error: clean, owner, checkpoint: atCheckpoint, fix_id: fix?.id ?? null,
+  const question = canRecord ? store.addQuestion({ error: clean, owner, checkpoint: atCheckpoint ?? (result.chainError ? null : start), fix_id: fix?.id ?? null,
     delegate_key: result.delegateKey ?? null, watch_state: watching ? 'watching' : 'stopped',
     answered_from: answeredFrom, state: answeredFrom === 'none' ? 'handed_off' : 'answered', created_at: createdAt }) : null
   return {
     ...result, finding,
     fix: fix ? { id: fix.id, title: fix.title, body: fix.body, verify_fn: fix.verify_fn, status: fix.status,
-      retiredReason: fix.retired_reason, verified: fix.verified, reported: fix.reported, sourceUrl: fix.source_url,
+      retiredReason: fix.retired_reason, verified: fix.verified, reported: fix.reported, sourceUrl: fix.source_url, agent: Boolean(fix.caller),
       possible: hit.distance >= SURE_DISTANCE } : null,
     questionId: question?.id ?? null,
     handedOff: question?.state === 'handed_off',

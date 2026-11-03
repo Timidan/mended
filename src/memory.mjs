@@ -10,6 +10,7 @@ import { ownedBlobs } from './sui.mjs'
 export const MAX_DISTANCE = 0.58
 export const SURE_DISTANCE = 0.5
 const WRITE_GAP = 11_000
+const NAMESPACE = process.env.MEMWAL_NAMESPACE ?? 'fixes'
 const setting = (env, file) => {
   if (process.env[env] !== undefined) return process.env[env].trim()
   try {
@@ -47,13 +48,13 @@ export function createMemory({ accountId, client, budget = recallBudget, listBlo
   const connected = Boolean(accountId)
   let line = Promise.resolve()
   let nextWrite = 0
-  const sdk = () => client ??= MemWal.create({ key: setting('MEMWAL_KEY', '.memwal-key'), accountId, namespace: 'fixes' })
+  const sdk = () => client ??= MemWal.create({ key: setting('MEMWAL_KEY', '.memwal-key'), accountId, namespace: NAMESPACE })
   return {
     connected,
     async recall(error) {
       if (!connected) return []
       const text = scrub(error)
-      const { results } = await budget(text, () => sdk().recall({ query: text, namespace: 'fixes', maxDistance: MAX_DISTANCE, limit: 10 }))
+      const { results } = await budget(text, () => sdk().recall({ query: text, namespace: NAMESPACE, maxDistance: MAX_DISTANCE, limit: 10 }))
       return results.filter((hit) => Number.isFinite(hit.distance) && hit.distance < MAX_DISTANCE)
         .map((hit) => ({ id: hit.text.match(/^\[fix:([a-zA-Z0-9-]+)\]/)?.[1], distance: hit.distance, blob_id: hit.blob_id })).filter((hit) => hit.id)
     },
@@ -63,11 +64,11 @@ export function createMemory({ accountId, client, budget = recallBudget, listBlo
         await sleep(Math.max(0, nextWrite - now()))
         nextWrite = now() + WRITE_GAP
         const text = `[fix:${fix.id}]\n${scrub(fix.title)}\n${scrub(fix.error)}\n${scrub(fix.body)}`
-        const result = await sdk().rememberAndWait(text, 'fixes', { idempotencyKey: `fix:${fix.id}`, dedupe: true })
+        const result = await sdk().rememberAndWait(text, NAMESPACE, { idempotencyKey: `fix:${fix.id}`, dedupe: true })
         if (!result.id || !result.blob_id) throw new Error('Memory write did not complete')
         let objectId = null
         try {
-          objectId = (await listBlobs(result.owner, 'fixes')).find((b) => b.blobId === result.blob_id)?.objectId ?? null
+          objectId = (await listBlobs(result.owner, NAMESPACE)).find((b) => b.blobId === result.blob_id)?.objectId ?? null
         } catch {}
         return { id: result.id, blob_id: result.blob_id, blob_object_id: objectId }
       })

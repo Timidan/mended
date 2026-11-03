@@ -118,3 +118,16 @@ test('weak matches need exact tokens and storage is bounded after scrubbing', as
     assert.ok(Buffer.byteLength(store.question(result.questionId).error) <= 4096)
   } finally { store.close() }
 })
+
+test('a saved agent fix needs a distinctive shared token, however close the match', async () => {
+  const store = createStore(':memory:')
+  try {
+    const saved = fix(store, { caller: 'agent', error: '401 MemWal AUTH_REJECTED' })
+    store.remember(saved.id, { id: 'memory' })
+    const recall = async () => [{ id: saved.id, distance: 0.42 }]
+    assert.equal((await searchFixes('fetch failed ENOTFOUND from MemWal', '', deps(store, { recall }))).fix, null)
+    assert.equal((await searchFixes('MemWal returned AUTH_REJECTED', '', deps(store, { recall }))).fix.agent, true)
+  } finally {
+    store.close()
+  }
+})

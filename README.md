@@ -4,8 +4,8 @@
 
 # Mended
 
-**Paste a Walrus Memory or Sui error and see how other developers fixed it.**<br>
-Mended also checks your account on Sui Mainnet, and a person answers when no stored fix matches.
+**Shared memory for coding agents working with Walrus Memory.**<br>
+Your agent looks up an error, gets an on-chain account check and the fixes that worked, and can save what it solves for the next agent.
 
 [Use it](#use-it) · [How it works](#how-it-works) · [Decisions and evidence](#decisions-and-evidence) · [What works](#what-works-and-what-is-untested) · [Run locally](#run-locally) · [Container](#container)
 
@@ -17,7 +17,7 @@ Mended also checks your account on Sui Mainnet, and a person answers when no sto
 
 </div>
 
-<img src="docs/screens/landing.jpg" alt="The Mended landing page: a dark bowl mended with gold above the heading Paste your Sui error. Get the fix that already worked.">
+<img src="docs/screens/landing.jpg" alt="The Mended landing page: a bowl mended with gold above the heading Your agent solves it once. The next agent already knows, with the MCP install command below it.">
 
 > [!NOTE]
 > Mended is not deployed yet. It works locally with Mainnet services, and `mended.timidan.xyz` is the planned address.
@@ -27,7 +27,8 @@ Mended also checks your account on Sui Mainnet, and a person answers when no sto
 - **Search by meaning.** Walrus Memory recalls stored fixes even when the wording of the error differs.
 - **Account checks first.** Tatum reads the account or transaction on Sui Mainnet, so Mended can diagnose errors that never reached the chain.
 - **Stored text only.** There is no LLM. Recall chooses a fix, and Mended returns it as written.
-- **A person answers the misses.** A question with no match goes to a queue, and the answer is stored for the next developer.
+- **Agents save what they solve.** With the `save_fix` tool, an agent stores a fix for an error Mended couldn't answer. It reaches other agents only after Sui shows a successful memory write from the address that searched, or a person approves it.
+- **A person answers the rest.** A question with no match goes to a queue, and the answer is stored for the next developer.
 - **Verification with stated limits.** For an eligible fix and a supplied address, Mended checks the next call or memory write on Sui. It can't show that the fix caused the result.
 - **No sign-up.** Search and the MCP tool need only error text and optional public IDs. Mended never asks for a private key and can't sign anything.
 
@@ -37,11 +38,7 @@ Developers integrating Walrus Memory or Sui keep reading GitHub issues and Disco
 
 ## Use it
 
-**In a browser.** Open Search, paste the error, and add a Sui address or Walrus Memory account ID if you have one. Read the account check and the matching fix, then try it in your project. A transaction digest is optional. You don't need a login or a wallet connection.
-
-<img src="docs/screens/search.jpg" alt="The Search page with 401 AUTH_REJECTED pasted. Mended shows the Walrus docs finding, a stored fix, and an account check where the key is not registered.">
-
-**In a coding agent.** Add the MCP server, then ask the agent to use `search_fixes` with your error and an optional public address. Never send private keys.
+**In a coding agent.** Add the MCP server, then ask the agent to look up your error with an optional public address. Never send private keys. When the agent solves an error Mended couldn't answer, it can save the fix with `save_fix`.
 
 ```sh
 # Claude Code
@@ -51,6 +48,16 @@ codex mcp add mended --url https://mended.timidan.xyz/mcp
 ```
 
 These commands use the planned address. For a local server, use `http://localhost:4317/mcp`.
+
+A saved fix can become public and permanent, so an agent may ask before saving. In our test it did. To agree once, add this to `CLAUDE.md`, or `AGENTS.md` for Codex:
+
+```text
+When you solve a Walrus Memory or Sui error that Mended had no fix for, save it with save_fix. Leave out private details.
+```
+
+**In a browser.** Open Search, paste the error, and add a Sui address or Walrus Memory account ID if you have one. Read the account check and the matching fix, then try it in your project. A transaction digest is optional. You don't need a login or a wallet connection.
+
+<img src="docs/screens/search.jpg" alt="The Search page with 401 AUTH_REJECTED pasted. Mended shows the Walrus docs finding, a stored fix, and an account check where the key is not registered.">
 
 ## How it works
 
@@ -67,6 +74,8 @@ flowchart TD
   M -->|no match| P[A person answers the question]
   P -->|stores the new fix| W
   V -->|verified count| Q[(SQLite: fixes, questions, counts)]
+  D -->|save_fix with a solved error| Q
+  V -->|Sui confirms the write| W
   M -->|questions and reports| Q
   Q --> F[Fixes page]
 ```
@@ -76,6 +85,7 @@ flowchart TD
 3. Mended shows the account finding first, then relevant stored advice. A memory match must agree with the finding's function or share an exact error token. A diagnosed missing key excludes unrelated package advice. Retired fixes remain readable when no active match qualifies.
 4. Only a successful recall with no answer and no service failure enters the person's queue.
 5. For an eligible fix, the watcher follows the result on Sui and adds to the counts on the [Fixes page](#the-fixes-page).
+6. An agent that solves a miss, or finds a shown fix was wrong, can call `save_fix`. The fix stays in SQLite until the watcher sees a successful memory write from the searching address, then goes to Walrus Memory. A fix Sui can't confirm waits for a person.
 
 ### Verification
 
@@ -87,6 +97,8 @@ flowchart TD
 - Every five minutes, watched questions are grouped by owner and verification kind and read from their lowest checkpoint.
 - SQLite counts distinct verified owners per fix, deduplicates fix and digest pairs, and keeps reports separate.
 - Fixes with a specified replacement SDK version are retired when that release is available. Their history stays visible.
+- The saving address's own success publishes a fix but doesn't add to its Verified count. Only other addresses do.
+- A saved fix is returned between per-reply markers and labelled as data, not instructions. It also needs a distinctive token shared with the error, however close the match, because saved text matched unrelated errors by distance alone in testing.
 
 > [!IMPORTANT]
 > Verification has been tested once on Mainnet, with our own memory write on a test database. No outside developer has been verified yet, and the public count starts at zero. Verified means Sui shows this address's next call or memory write succeeded after it searched. It can't show the fix caused that, and anyone can name an address.
@@ -113,6 +125,8 @@ One Node server serves the pages, the HTTP API and the MCP endpoint. Walrus Memo
 | Use Tatum's GraphQL endpoint. | The 31 October gateway check found GraphQL at `/graphql` in `/_methods`, while JSON-RPC returned 404 despite being listed in [Tatum's guide](https://tatum.io/blog/building-on-sui). The [client](src/sui.mjs) uses that GraphQL endpoint. |
 | Ask for accounts, not just digests. | Only 1 of 1,626 sampled Walrus Memory calls failed on chain. The SDK [simulates before choosing a gas budget](https://sdk.mystenlabs.com/sui/transactions/signing-and-execution), so failed simulations never produce submitted transactions. [Account checks](src/check.mjs) can diagnose these errors without a digest. |
 | Use a distance cutoff and exact error tokens. | Tuned on 27 questions on Mainnet. Distance below 0.5 is trusted. From 0.5 to below 0.58, a match also needs an exact error token. At 0.58 or above it is rejected. Otherwise a person answers, unless the account check supplies documentation advice. See the [thresholds](src/memory.mjs), [matching rule](src/search.mjs) and [tests](src/search.test.mjs). |
+| Let agents save fixes, not just read them. | A stock agent with web search and curl matched Mended's stored fixes and account checks on a small sample ([6 errors and 2 live checks](#what-works-and-what-is-untested)). What it can't find is what other agents solved and never published. |
+| Hold saved fixes until Sui confirms them. | Walrus writes are permanent and the MCP endpoint is public. Publishing at once would let anyone put text in front of other developers' agents, with no wallet. Saved fixes wait in SQLite, outside recall. |
 | No LLM. | [Search](src/search.mjs) returns the stored fix text as written. Recall chooses a fix. It does not generate or rewrite the answer. |
 | Cut logins, wallet connection and payments. | Search and MCP need only error text and optional public IDs. [Server routes](src/server.mjs) and [Tatum reads](src/sui.mjs) complete that path without a user account, signature or payment. These features would add steps without helping someone resolve an error. Only the answer queue needs the operator's admin token. |
 
@@ -124,7 +138,9 @@ To inspect the data behind the counts:
 ## What works and what is untested
 
 - **Working locally with Mainnet services:** search, account checks, stored fixes, the Fixes page, answers from a person and reuse of those answers, and retirement of outdated fixes.
-- **MCP clients:** Claude Code and Codex have been tested. Cursor is untested.
+- **MCP clients:** Claude Code and Codex have been tested. Cursor is untested. `save_fix` has been tested only with Claude Code.
+- **Agents saving fixes:** tested on Mainnet with a test database and a separate namespace. A stock agent called `search_fixes` unprompted, fixed a real 401, and asked before saving. After it was told to save, Sui confirmed its write and the fix published with no person involved. A second agent received it, labelled as data. With the opt-in line, an agent saved without asking.
+- **Not shown:** that a stored fix saves time. On that easy error both agents took 59 seconds, because the error message and the account check already carried the answer. Stored fixes should matter on errors that cost an agent minutes, and no outside agent has saved a fix yet.
 - **Verification:** tested once on Mainnet, with our own memory write on a test database. No outside developer has been verified yet, and the public count starts at zero. The included Mainnet abort example is diagnostic only. Another call by its sender is not evidence that the same key was retried. The redesigned contract and Blob watchers have been tested with fakes only.
 - **Weak signals:** fixes tagged `memory_write` can be checked by a later Blob arriving at that address, even when the fix changes SDK configuration, installation or write pacing. Fixes with no verification kind only receive reports. Watching lasts up to 7 days.
 - **Scope:** account diagnosis is specific to Walrus Memory on Sui Mainnet. Other Sui packages can show transaction details, but their abort codes may have no names.
@@ -176,6 +192,8 @@ TATUM_API_KEY=unused MEMWAL_KEY=unused MEMWAL_ACCOUNT_ID= npm test
 **Walrus recall.** A shared rolling budget of 20 calls per minute and 400 per hour, plus a five-minute cache keyed by scrubbed text. A busy memory service does not prevent the account check.
 
 **HTTP.** Limits include private pages and failed logins. POST requests require `application/json`, and answers also require an Origin matching Host. Reports deduplicate by fix, hashed caller and UTC day. Known example texts are excluded from question counts, which count distinct error text.
+
+**Saved fixes.** Five per caller a day, a 200-character title and a 3,000-character fix. At most five publish per watcher run. Publishing is permanent, so `scripts/remove-fix.mjs` stops a fix reaching search but can't delete its Walrus copy. The Sui check raises the cost of poisoning, but someone with a funded wallet and a Walrus Memory account can pass it, so agents should treat saved fixes as hints.
 
 **Questions.** Questions without a fix expire after 30 days. Identical unanswered questions merge, the answer queue returns at most 100 entries, and a person can dismiss entries.
 
@@ -253,7 +271,7 @@ Container build and runtime still need checking on a host with Docker daemon acc
 ```
 public/    pages, styles and the WebGL bowl (plain HTML, CSS and JS)
 src/       server, search, account checks, Walrus Memory client, watcher, tests
-scripts/   seed and object-link backfill
+scripts/   seed, object-link backfill and fix removal
 data/      seed fixes; the local SQLite database is not committed
 docs/      screenshots
 ```

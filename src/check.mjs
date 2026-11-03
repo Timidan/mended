@@ -70,6 +70,7 @@ function accountChecks(account, keys, lookedUp) {
     tone: frozen ? 'bad' : 'good',
     href: explorer('object', account.id),
   })
+  checks.push({ label: 'Account ID', value: account.id, tone: 'plain' })
   const used = account.delegate_keys.length
   checks.push({ label: 'Delegate keys', value: `${used} of ${KEY_LIMIT}`, tone: used >= KEY_LIMIT ? 'bad' : 'plain' })
   if (keys.length) {

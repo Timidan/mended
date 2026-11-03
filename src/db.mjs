@@ -6,11 +6,14 @@ import { migrate } from './migrate.mjs'
 import { limitText, scrub } from './scrub.mjs'
 
 const counts = `SELECT f.*,
-  (SELECT count(DISTINCT owner) FROM verifications v WHERE v.fix_id = f.id) AS verified,
+  (SELECT count(DISTINCT owner) FROM verifications v WHERE v.fix_id = f.id AND v.owner IS NOT f.author) AS verified,
   (SELECT count(*) FROM reports r WHERE r.fix_id = f.id) +
   (SELECT count(*) FROM report_callers r WHERE r.fix_id = f.id) AS reported,
-  (SELECT json_group_array(digest) FROM verifications v WHERE v.fix_id = f.id AND v.owner IS NOT NULL) AS digests
+  (SELECT json_group_array(digest) FROM verifications v WHERE v.fix_id = f.id AND v.owner IS NOT NULL AND v.owner IS NOT f.author) AS digests
   FROM fixes f`
+
+// An agent's fix stays out of search until it reaches Walrus Memory, and a person can still remove it
+export const shareable = (fix) => !fix.caller || Boolean(fix.memory_id && fix.status === 'active')
 
 export function createStore(path = process.env.DB_PATH ?? 'data/mended.sqlite') {
   if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true })
@@ -52,13 +55,14 @@ export function createStore(path = process.env.DB_PATH ?? 'data/mended.sqlite') 
     question: (id) => db.prepare('SELECT * FROM questions WHERE id = ?').get(id),
     pending: () => db.prepare(`SELECT q.* FROM questions q LEFT JOIN fixes f ON f.id = q.fix_id
       WHERE q.dismissed = 0 AND (q.state = 'handed_off' OR (f.source = 'person' AND f.memory_id IS NULL))
-      ORDER BY q.created_at LIMIT 100`).all().map((q) => ({ ...q, fix: q.fix_id ? store.fix(q.fix_id) : null })),
+      AND NOT (f.caller IS NOT NULL AND q.watch_state = 'watching' AND q.created_at > ?)
+      ORDER BY q.created_at LIMIT 100`).all(new Date(Date.now() - 7 * 86400000).toISOString()).map((q) => ({ ...q, fix: q.fix_id ? store.fix(q.fix_id) : null })),
     addFix(fix) {
       const { id = randomUUID(), title, error, body, source, source_url = null, verify_fn = null,
-        sdk_version = null, retire_at_version = null, created_at = new Date().toISOString() } = fix
+        sdk_version = null, retire_at_version = null, caller = null, author = null, created_at = new Date().toISOString() } = fix
       db.prepare(`INSERT INTO fixes (id, title, error, body, source, source_url, verify_fn,
-        sdk_version, retire_at_version, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-        .run(id, title, error, body, source, source_url, verify_fn, sdk_version, retire_at_version, created_at)
+        sdk_version, retire_at_version, caller, author, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+        .run(id, title, error, body, source, source_url, verify_fn, sdk_version, retire_at_version, caller, author, created_at)
       return store.fix(id)
     },
     addQuestion(question) {
@@ -66,7 +70,7 @@ export function createStore(path = process.env.DB_PATH ?? 'data/mended.sqlite') 
         watch_state = 'stopped', answered_from, state, created_at = new Date().toISOString() } = question
       const error = limitText(scrub(question.error))
       if (state === 'handed_off') {
-        const existing = db.prepare("SELECT * FROM questions WHERE error = ? AND state = 'handed_off' AND dismissed = 0 LIMIT 1").get(error)
+        const existing = db.prepare("SELECT * FROM questions WHERE error = ? AND owner IS ? AND state = 'handed_off' AND dismissed = 0 LIMIT 1").get(error, owner)
         if (existing) return existing
       }
       db.prepare(`INSERT INTO questions (id, error, owner, checkpoint, fix_id, answered_from, state, created_at, delegate_key, watch_state)
@@ -93,6 +97,20 @@ export function createStore(path = process.env.DB_PATH ?? 'data/mended.sqlite') 
         throw error
       }
     },
+    // Also replaces a stored fix that was shown for this question and didn't solve it
+    saveAgentFix(id, fields) {
+      db.exec('BEGIN IMMEDIATE')
+      try {
+        const fix = store.addFix({ ...fields, source: 'person' })
+        db.prepare(`UPDATE questions SET error = ?, fix_id = ?, answered_from = 'none', state = 'answered', watch_state = 'stopped'
+          WHERE id = ?`).run(fix.error, fix.id, id)
+        db.exec('COMMIT')
+        return fix
+      } catch (error) {
+        db.exec('ROLLBACK')
+        throw error
+      }
+    },
     remember(id, memory) {
       db.prepare('UPDATE fixes SET memory_id = ?, blob_id = ?, blob_object_id = ? WHERE id = ?')
         .run(memory.id, memory.blob_id ?? null, memory.blob_object_id ?? null, id)
@@ -111,6 +129,14 @@ export function createStore(path = process.env.DB_PATH ?? 'data/mended.sqlite') 
         AND q.watch_state = 'watching' AND f.status = 'active' AND q.created_at > ?
         AND NOT EXISTS (SELECT 1 FROM verifications v WHERE v.question_id = q.id)`).all(since)
     },
+    watch: (id) => db.prepare("UPDATE questions SET watch_state = 'watching' WHERE id = ?").run(id),
+    wasVerified: (id) => Boolean(db.prepare('SELECT 1 FROM verifications WHERE question_id = ?').get(id)),
+    savedBy: (caller) => db.prepare('SELECT count(*) AS n FROM fixes WHERE caller = ?').get(caller).n,
+    // Five at most per run: each write takes about 30 seconds and spends Walrus Memory's hourly points
+    unpublished: () => db.prepare(`${counts} WHERE f.caller IS NOT NULL AND f.memory_id IS NULL AND f.status = 'active'
+      AND EXISTS (SELECT 1 FROM verifications v JOIN questions q ON q.id = v.question_id WHERE v.fix_id = f.id AND q.dismissed = 0)
+      ORDER BY f.created_at LIMIT 5`).all().map(row),
+    remove: (id) => db.prepare("UPDATE fixes SET status = 'retired', retired_reason = 'Removed by a person' WHERE id = ? AND caller IS NOT NULL").run(id),
     stopWatching: (id) => db.prepare("UPDATE questions SET watch_state = 'stopped' WHERE id = ?").run(id),
     verify(questionId, digest, at) {
       const result = db.prepare(`INSERT OR IGNORE INTO verifications (question_id, fix_id, digest, at, owner)
@@ -128,7 +154,9 @@ export function createStore(path = process.env.DB_PATH ?? 'data/mended.sqlite') 
       const days = db.prepare(`SELECT substr(created_at, 1, 10) AS day, count(DISTINCT error) AS questions,
         count(DISTINCT CASE WHEN answered_from = 'memory' THEN error END) AS memory FROM questions GROUP BY day ORDER BY day`).all()
       const totals = db.prepare("SELECT count(DISTINCT error) AS questions, count(DISTINCT CASE WHEN answered_from = 'memory' THEN error END) AS memory FROM questions").get()
-      return { days, ...totals }
+      const agents = db.prepare(`SELECT (SELECT count(*) FROM fixes WHERE caller IS NOT NULL AND memory_id IS NOT NULL AND status = 'active') AS agentFixes,
+        (SELECT count(DISTINCT q.error) FROM questions q JOIN fixes f ON f.id = q.fix_id WHERE f.caller IS NOT NULL AND q.answered_from = 'memory') AS agentAnswers`).get()
+      return { days, ...totals, ...agents }
     },
   }
   store.prune()
