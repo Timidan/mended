@@ -20,7 +20,7 @@ Your agent looks up an error, gets an on-chain account check and the fixes that 
 <img src="docs/screens/landing.jpg" alt="The Mended landing page: a bowl mended with gold above the heading Your agent solves it once. The next agent already knows, with the MCP install command below it.">
 
 > [!NOTE]
-> Mended is not deployed yet. It works locally with Mainnet services, and `mended.timidan.xyz` is the planned address.
+> Live at **https://mended.timidan.xyz**, on Sui Mainnet. Built for Total Recall (Tatum × Walrus Memory), Smart Agents for Real Life track.
 
 ## Highlights
 
@@ -47,7 +47,7 @@ claude mcp add --transport http mended https://mended.timidan.xyz/mcp
 codex mcp add mended --url https://mended.timidan.xyz/mcp
 ```
 
-These commands use the planned address. For a local server, use `http://localhost:4317/mcp`.
+For a local server, use `http://localhost:4317/mcp`.
 
 A saved fix can become public and permanent, so an agent may ask before saving. In our test it did. To agree once, add this to `CLAUDE.md`, or `AGENTS.md` for Codex:
 
@@ -137,7 +137,7 @@ To inspect the data behind the counts:
 
 ## What works and what is untested
 
-- **Working locally with Mainnet services:** search, account checks, stored fixes, the Fixes page, answers from a person and reuse of those answers, and retirement of outdated fixes.
+- **Working on Mainnet at mended.timidan.xyz:** search, account checks, stored fixes, the Fixes page, answers from a person and reuse of those answers, and retirement of outdated fixes.
 - **MCP clients:** Claude Code and Codex have been tested. Cursor is untested. `save_fix` has been tested only with Claude Code.
 - **Agents saving fixes:** tested on Mainnet with a test database and a separate namespace. A stock agent called `search_fixes` unprompted, fixed a real 401, and asked before saving. After it was told to save, Sui confirmed its write and the fix published with no person involved. A second agent received it, labelled as data. With the opt-in line, an agent saved without asking.
 - **Not shown:** that a stored fix saves time. On that easy error both agents took 59 seconds, because the error message and the account check already carried the answer. Stored fixes should matter on errors that cost an agent minutes, and no outside agent has saved a fix yet.
@@ -146,7 +146,7 @@ To inspect the data behind the counts:
 - **Scope:** account diagnosis is specific to Walrus Memory on Sui Mainnet. Other Sui packages can show transaction details, but their abort codes may have no names.
 - **Outages:** if Tatum is unavailable, memory can still answer. If Walrus Memory is unavailable, account checks can still run. The missing service is stated in the response.
 - **Privacy:** pasted errors are scrubbed before account parsing, storage and recall, and limited to 4 KB. The separate public address and key field is used for account checks. A person can edit the error before publishing an answer or saving it permanently in Walrus. Person-sourced error text is omitted from the public fixes API. Scrubbing is best effort, so do not paste secrets or private data. The Walrus relayer sees plaintext.
-- **Still to check against Mainnet:** live GraphQL schema compatibility, Blob metadata, object links and verification outcomes. Local tests use fakes for external services.
+- **Tests:** local tests use fakes for external services. The Mainnet results above were checked by hand, including the 32 fix memories, each read back through Tatum as a Walrus Blob.
 
 ## Run locally
 
