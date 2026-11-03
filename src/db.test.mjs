@@ -67,6 +67,7 @@ test('questions merge, can be dismissed, are bounded, and old unanswered rows ex
     assert.equal(store.addQuestion(fields).id, a.id)
     store.dismiss(a.id)
     assert.equal(store.pending().length, 0)
+    assert.equal(store.stats().questions, 0)
     const old = store.addQuestion({ ...fields, error: 'old', created_at: '2020-01-01T00:00:00Z' })
     store.prune()
     assert.equal(store.question(old.id), undefined)

@@ -152,10 +152,10 @@ export function createStore(path = process.env.DB_PATH ?? 'data/mended.sqlite') 
       .run(`Fixed in SDK ${version}`, id),
     stats() {
       const days = db.prepare(`SELECT substr(created_at, 1, 10) AS day, count(DISTINCT error) AS questions,
-        count(DISTINCT CASE WHEN answered_from = 'memory' THEN error END) AS memory FROM questions GROUP BY day ORDER BY day`).all()
-      const totals = db.prepare("SELECT count(DISTINCT error) AS questions, count(DISTINCT CASE WHEN answered_from = 'memory' THEN error END) AS memory FROM questions").get()
+        count(DISTINCT CASE WHEN answered_from = 'memory' THEN error END) AS memory FROM questions WHERE dismissed = 0 GROUP BY day ORDER BY day`).all()
+      const totals = db.prepare("SELECT count(DISTINCT error) AS questions, count(DISTINCT CASE WHEN answered_from = 'memory' THEN error END) AS memory FROM questions WHERE dismissed = 0").get()
       const agents = db.prepare(`SELECT (SELECT count(*) FROM fixes WHERE caller IS NOT NULL AND memory_id IS NOT NULL AND status = 'active') AS agentFixes,
-        (SELECT count(DISTINCT q.error) FROM questions q JOIN fixes f ON f.id = q.fix_id WHERE f.caller IS NOT NULL AND q.answered_from = 'memory') AS agentAnswers`).get()
+        (SELECT count(DISTINCT q.error) FROM questions q JOIN fixes f ON f.id = q.fix_id WHERE f.caller IS NOT NULL AND q.answered_from = 'memory' AND q.dismissed = 0) AS agentAnswers`).get()
       return { days, ...totals, ...agents }
     },
   }
