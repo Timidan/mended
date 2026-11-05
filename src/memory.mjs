@@ -5,10 +5,10 @@ import { MemWal } from '@mysten-incubation/memwal'
 import { scrub } from './scrub.mjs'
 import { ownedBlobs } from './sui.mjs'
 
-// Tuned on Mainnet with 27 questions. Below SURE_DISTANCE, matches were right. Between the two, right and wrong
-// matches overlapped, so search.mjs also requires an exact error token there.
+// Retuned on 5 Nov with 64 searches from five test agents: right and wrong matches overlapped from about 0.23 to 0.54,
+// so distance alone never decides. search.mjs also needs shared words, and calls a match sure only below SURE_DISTANCE.
 export const MAX_DISTANCE = 0.58
-export const SURE_DISTANCE = 0.5
+export const SURE_DISTANCE = 0.4
 const WRITE_GAP = 11_000
 const NAMESPACE = process.env.MEMWAL_NAMESPACE ?? 'fixes'
 const setting = (env, file) => {

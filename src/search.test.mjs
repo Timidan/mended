@@ -56,18 +56,18 @@ test('only eligible new searches arm watches, with a baseline for memory writes'
     const options = deps(store, { checkpoint: async () => { captured = true; return '200' },
       check: async () => { assert.equal(captured, true); return { owner: 'typed-owner' } }, recent: async (owner) => { assert.equal(owner, 'typed-owner'); return recent },
       recall: async () => [{ id: saved.id, distance: 0.3 }] })
-    assert.equal((await searchFixes('401 after write', address, options)).watching, 'memory_write')
+    assert.equal((await searchFixes('401 AUTH_REJECTED after write', address, options)).watching, 'memory_write')
     recent = true
-    assert.equal((await searchFixes('401 after write', address, options)).watching, null)
+    assert.equal((await searchFixes('401 AUTH_REJECTED after write', address, options)).watching, null)
     options.recall = async () => [{ id: saved.id, distance: 0.55 }]
-    assert.equal((await searchFixes('401 after write', address, options)).watching, null)
+    assert.equal((await searchFixes('401 AUTH_REJECTED after write', address, options)).watching, null)
     const count = store.stats().questions
     assert.equal((await searchFixes('401 AUTH_REJECTED from the relayer', address, options)).questionId, null)
     assert.equal(store.stats().questions, count)
     const creation = fix(store, { verify_fn: 'create_account' })
     options.check = async () => ({ owner: 'typed-owner', hasAccount: true })
     options.recall = async () => [{ id: creation.id, distance: 0.2 }]
-    assert.equal((await searchFixes('401 after write', address, options)).watching, null)
+    assert.equal((await searchFixes('401 AUTH_REJECTED after write', address, options)).watching, null)
   } finally { store.close() }
 })
 
@@ -130,4 +130,17 @@ test('a saved agent fix needs a distinctive shared token, however close the matc
   } finally {
     store.close()
   }
+})
+
+test('stack-trace line numbers are not evidence, and a closer retired fix still wins', async () => {
+  const store = createStore(':memory:')
+  try {
+    const upgrade = fix(store, { title: '426 after installing the SDK', error: 'MemWal API error (426):', verify_fn: null })
+    const close = async () => [{ id: upgrade.id, distance: 0.26 }]
+    assert.equal((await searchFixes('Error: 429 rate limit\n    at MemWal.request (node_modules/memwal/dist/index.js:426:19)', '', deps(store, { recall: close }))).fix, null)
+    const retired = fix(store, { title: 'Embedding input limit', error: '400 input is over the embedding input limit of 16384 bytes', verify_fn: null })
+    store.db.prepare("UPDATE fixes SET status = 'retired' WHERE id = ?").run(retired.id)
+    const both = async () => [{ id: upgrade.id, distance: 0.45 }, { id: retired.id, distance: 0.27 }]
+    assert.equal((await searchFixes('400 input is over the embedding input limit of 16384 bytes', '', deps(store, { recall: both }))).fix.id, retired.id)
+  } finally { store.close() }
 })
